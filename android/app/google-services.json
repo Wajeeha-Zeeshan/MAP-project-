@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "542563034153",
+    "project_id": "learnloop-efb64",
+    "storage_bucket": "learnloop-efb64.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:542563034153:android:ea31c5af2a443bb0b02838",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_11"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV2mkl0tZcii_VmW7p0Y2jz8Wcyfe7R6I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
