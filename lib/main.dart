@@ -1,34 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'view/auth/register_view.dart';
+import 'view/auth/login_view.dart';
+import 'viewmodels/auth_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  Future<void> addData() async {
-    try {
-      await FirebaseFirestore.instance.collection('testCollection').add({
-        'timestamp': DateTime.now(),
-        'message': 'Hello from Flutter!',
-      });
-      print('Data added successfully');
-    } catch (e) {
-      print('Error adding data: $e');
-    }
-  }
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Firestore Test',
-      home: Scaffold(
-        appBar: AppBar(title: Text('Firestore Test')),
-        body: Center(
-          child: ElevatedButton(onPressed: addData, child: Text('Add Data')),
+    return MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => AuthViewModel())],
+      child: MaterialApp(
+        title: 'Firestore Test',
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const HomeScreen(),
+          '/register': (context) => RegisterView(),
+        },
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Firestore Test')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () => Navigator.pushNamed(context, '/login'),
+              child: const Text('Go to Login'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pushNamed(context, '/register'),
+              child: const Text('Go to Register'),
+            ),
+          ],
         ),
       ),
     );
