@@ -52,6 +52,51 @@ class AuthViewModel with ChangeNotifier {
     }
   }
 
+  Future<void> login({required String email, required String password}) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      print('Attempting login for email: $email');
+      QuerySnapshot query =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
+
+      print('Query results: ${query.docs.length} documents found');
+      if (query.docs.isEmpty) {
+        throw Exception('User with email $email not found');
+      }
+
+      var userDoc = query.docs.first;
+      UserModel userModel = UserModel.fromMap(
+        userDoc.data() as Map<String, dynamic>,
+      );
+      print('Retrieved user: ${userModel.toMap()}');
+
+      if (userModel.password != password.trim()) {
+        print(
+          'Provided password: ${password.trim()}, Stored password: ${userModel.password}',
+        );
+        throw Exception('Incorrect password for user $email');
+      }
+
+      _user = userModel;
+      print(
+        'Login successful for user: ${userModel.email} with role: ${userModel.role}',
+      );
+    } catch (e) {
+      _errorMessage = e.toString();
+      print('Login error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> recoverPassword({required String email}) async {
     try {
       _isLoading = true;
