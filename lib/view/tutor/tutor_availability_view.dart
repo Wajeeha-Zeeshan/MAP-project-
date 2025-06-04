@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -282,6 +281,3 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
     );
   }
 }
-=======
-
->>>>>>> 0f976677689fc1f2011bd67d9a0725792678e398
