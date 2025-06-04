@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../booking/booking_list_view.dart'; // Adjust path based on your project structure
 
 class TutorAvailabilityView extends StatefulWidget {
   final String userId;
@@ -21,6 +22,7 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
     'Saturday': [],
     'Sunday': [],
   };
+  Map<String, double> _fees = {};
   bool _isLoading = true;
 
   @override
@@ -47,10 +49,15 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
               (key, value) => MapEntry(key, List<String>.from(value)),
             );
           }
+          final feesData = data['fees'] as Map<String, dynamic>?;
+          if (feesData != null) {
+            _fees = feesData.map(
+              (key, value) => MapEntry(key, value as double),
+            );
+          }
           _isLoading = false;
         });
       } else {
-        // If no tutor document exists, initialize it
         await _initializeTutorData();
       }
     } catch (e) {
@@ -68,7 +75,12 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
       await FirebaseFirestore.instance
           .collection('tutors')
           .doc(widget.userId)
-          .set({'subjects': _subjects, 'availability': _availability});
+          .set({
+            'uid': widget.userId,
+            'subjects': _subjects,
+            'availability': _availability,
+            'fees': _fees,
+          });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error initializing tutor data: $e')),
@@ -81,7 +93,11 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
       await FirebaseFirestore.instance
           .collection('tutors')
           .doc(widget.userId)
-          .update({'subjects': _subjects, 'availability': _availability});
+          .update({
+            'subjects': _subjects,
+            'availability': _availability,
+            'fees': _fees,
+          });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Data updated successfully')),
       );
@@ -93,15 +109,30 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
   }
 
   void _addSubject() {
-    final controller = TextEditingController();
+    final subjectController = TextEditingController();
+    final feeController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Add Subject'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(labelText: 'Subject Name'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: subjectController,
+                decoration: const InputDecoration(labelText: 'Subject Name'),
+              ),
+              TextField(
+                controller: feeController,
+                decoration: const InputDecoration(
+                  labelText: 'Fee per Hour (e.g., 50.0)',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -110,16 +141,70 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
             ),
             TextButton(
               onPressed: () {
-                final subject = controller.text.trim();
-                if (subject.isNotEmpty && !_subjects.contains(subject)) {
+                final subject = subjectController.text.trim();
+                final fee = double.tryParse(feeController.text.trim()) ?? 0.0;
+                if (subject.isNotEmpty &&
+                    !_subjects.contains(subject) &&
+                    fee > 0) {
                   setState(() {
                     _subjects.add(subject);
+                    _fees[subject] = fee;
                   });
                   _updateTutorData();
                   Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid subject and fee'),
+                    ),
+                  );
                 }
               },
               child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _editFee(String subject) {
+    final feeController = TextEditingController(
+      text: _fees[subject].toString(),
+    );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit Fee for $subject'),
+          content: TextField(
+            controller: feeController,
+            decoration: const InputDecoration(
+              labelText: 'Fee per Hour (e.g., 50.0)',
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                final fee = double.tryParse(feeController.text.trim()) ?? 0.0;
+                if (fee > 0) {
+                  setState(() {
+                    _fees[subject] = fee;
+                  });
+                  _updateTutorData();
+                  Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid fee')),
+                  );
+                }
+              },
+              child: const Text('Save'),
             ),
           ],
         );
@@ -161,6 +246,15 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
           ],
         );
       },
+    );
+  }
+
+  void _viewBookings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookingListView(tutorName: widget.userId),
+      ),
     );
   }
 
@@ -207,13 +301,35 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
                             children:
                                 _subjects.map((subject) {
                                   return Chip(
-                                    label: Text(subject),
+                                    label: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(subject),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'RM${_fees[subject]?.toStringAsFixed(2) ?? '0.00'}/hr',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     onDeleted: () {
                                       setState(() {
                                         _subjects.remove(subject);
+                                        _fees.remove(subject);
                                       });
                                       _updateTutorData();
                                     },
+                                    deleteIcon: const Icon(
+                                      Icons.cancel,
+                                      size: 18,
+                                    ),
+                                    avatar: IconButton(
+                                      icon: const Icon(Icons.edit, size: 18),
+                                      onPressed: () => _editFee(subject),
+                                    ),
                                   );
                                 }).toList(),
                           ),
@@ -272,6 +388,24 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
                               ],
                             );
                           }).toList(),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: _viewBookings,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4facfe),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 14,
+                              ),
+                            ),
+                            child: const Text(
+                              'View Bookings',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

@@ -10,7 +10,9 @@ class TutorDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     final subjects = tutor['subjects'] as List<String>;
     final availability = tutor['availability'] as Map<String, List<String>>;
-    final fees = tutor['fees'] as Map<String, double>;
+    final fees =
+        tutor['fees'] as Map<String, double>? ??
+        <String, double>{}; // Fix applied here
 
     return Scaffold(
       appBar: AppBar(

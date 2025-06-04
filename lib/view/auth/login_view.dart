@@ -25,7 +25,9 @@ class LoginView extends StatelessWidget {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               elevation: 12,
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -64,34 +66,40 @@ class LoginView extends StatelessWidget {
                     authViewModel.isLoading
                         ? const CircularProgressIndicator()
                         : ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                              backgroundColor: const Color(0xFF4facfe),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 40,
+                              vertical: 12,
                             ),
-                            onPressed: () async {
-                              print(
-                                'Login attempt - Email: ${_emailController.text}, Password: ${_passwordController.text}',
-                              );
-                              await authViewModel.login(
-                                email: _emailController.text.trim(),
-                                password: _passwordController.text.trim(),
-                              );
-                              if (authViewModel.errorMessage == null &&
-                                  authViewModel.user != null) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ProfileView(user: authViewModel.user!),
-                                  ),
-                                );
-                              }
-                            },
-                            child: const Text('Login'),
+                            backgroundColor: const Color(0xFF4facfe),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
+                          onPressed: () async {
+                            print(
+                              'Login attempt - Email: ${_emailController.text}, Password: ${_passwordController.text}',
+                            );
+                            await authViewModel.login(
+                              email: _emailController.text.trim(),
+                              password: _passwordController.text.trim(),
+                            );
+                            if (authViewModel.errorMessage == null &&
+                                authViewModel.user != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => ProfileView(
+                                        user: authViewModel.user!,
+                                      ),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Login'),
+                        ),
                     if (authViewModel.errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
@@ -102,14 +110,18 @@ class LoginView extends StatelessWidget {
                       ),
                     const SizedBox(height: 10),
                     TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => PasswordRecoveryView()),
-                      ),
+                      onPressed:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PasswordRecoveryView(),
+                            ),
+                          ),
                       child: const Text('Forgot Password?'),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/register'),
+                      onPressed:
+                          () => Navigator.pushNamed(context, '/register'),
                       child: const Text('Don’t have an account? Register'),
                     ),
                   ],

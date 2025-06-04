@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/tutor_viewmodel.dart';
+import 'tutor_detail_view.dart';
 
 class TutorListView extends StatelessWidget {
   const TutorListView({super.key});
@@ -38,7 +38,7 @@ class TutorListView extends StatelessWidget {
                       TextField(
                         decoration: const InputDecoration(
                           labelText: 'Search Tutors',
-                          hintText: 'Enter tutor name',
+                          hintText: 'Enter tutor name or subject',
                           prefixIcon: Icon(Icons.search),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -68,14 +68,35 @@ class TutorListView extends StatelessWidget {
                           itemCount: tutorViewModel.filteredTutors.length,
                           itemBuilder: (context, index) {
                             final tutor = tutorViewModel.filteredTutors[index];
+                            final subjects = tutor['subjects'] as List<String>;
                             return Card(
                               margin: const EdgeInsets.symmetric(vertical: 4),
                               child: ListTile(
                                 title: Text(tutor['name'] as String),
-                                subtitle: Text(tutor['email'] as String),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(tutor['email'] as String),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Subjects: ${subjects.isEmpty ? 'None' : subjects.join(', ')}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                                 trailing: const Icon(Icons.contact_mail),
                                 onTap: () {
-                                  // Handle tutor selection
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              TutorDetailView(tutor: tutor),
+                                    ),
+                                  );
                                 },
                               ),
                             );
@@ -93,6 +114,3 @@ class TutorListView extends StatelessWidget {
     );
   }
 }
-=======
-
->>>>>>> 0f976677689fc1f2011bd67d9a0725792678e398
