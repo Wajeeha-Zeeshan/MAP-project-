@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/tutor_viewmodel.dart';
@@ -92,3 +93,6 @@ class TutorListView extends StatelessWidget {
     );
   }
 }
+=======
+
+>>>>>>> 0f976677689fc1f2011bd67d9a0725792678e398
