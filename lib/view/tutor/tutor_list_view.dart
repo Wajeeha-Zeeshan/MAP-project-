@@ -21,13 +21,7 @@ class TutorListView extends StatelessWidget {
           ),
         ),
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF8fd3fe), Color(0xFF4facfe)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
+          color: Colors.white,
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -36,26 +30,33 @@ class TutorListView extends StatelessWidget {
                   return Column(
                     children: [
                       TextField(
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Search Tutors',
                           hintText: 'Enter tutor name or subject',
-                          prefixIcon: Icon(Icons.search),
+                          prefixIcon: const Icon(Icons.search),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          filled: true,
+                          fillColor: Colors.grey[200],
                         ),
                         onChanged: (query) {
                           tutorViewModel.updateSearchQuery(query);
                         },
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        'Available Tutors',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Available Tutors',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 10),
                       if (tutorViewModel.isLoading)
                         const Center(child: CircularProgressIndicator()),
                       if (tutorViewModel.errorMessage != null)
@@ -70,13 +71,29 @@ class TutorListView extends StatelessWidget {
                             final tutor = tutorViewModel.filteredTutors[index];
                             final subjects = tutor['subjects'] as List<String>;
                             return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              elevation: 3,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               child: ListTile(
-                                title: Text(tutor['name'] as String),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                title: Text(
+                                  tutor['name'] as String,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(tutor['email'] as String),
+                                    Text(
+                                      tutor['email'] as String,
+                                      style: const TextStyle(color: Colors.black87),
+                                    ),
                                     const SizedBox(height: 4),
                                     Text(
                                       'Subjects: ${subjects.isEmpty ? 'None' : subjects.join(', ')}',
@@ -87,14 +104,12 @@ class TutorListView extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                trailing: const Icon(Icons.contact_mail),
+                                trailing: const Icon(Icons.arrow_forward_ios, size: 18, color: Color(0xFF4facfe)),
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder:
-                                          (context) =>
-                                              TutorDetailView(tutor: tutor),
+                                      builder: (context) => TutorDetailView(tutor: tutor),
                                     ),
                                   );
                                 },

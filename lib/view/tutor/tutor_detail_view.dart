@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../booking/booking_detail_view.dart'; // Import the booking detail page
+import '../booking/booking_detail_view.dart';
 
 class TutorDetailView extends StatelessWidget {
   final Map<String, dynamic> tutor;
@@ -10,9 +10,7 @@ class TutorDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     final subjects = tutor['subjects'] as List<String>;
     final availability = tutor['availability'] as Map<String, List<String>>;
-    final fees =
-        tutor['fees'] as Map<String, double>? ??
-        <String, double>{}; // Fix applied here
+    final fees = tutor['fees'] as Map<String, double>? ?? <String, double>{};
 
     return Scaffold(
       appBar: AppBar(
@@ -25,13 +23,7 @@ class TutorDetailView extends StatelessWidget {
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF8fd3fe), Color(0xFF4facfe)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+        color: Colors.white,
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -49,9 +41,9 @@ class TutorDetailView extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'Tutor Details',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF4facfe),
@@ -73,7 +65,7 @@ class TutorDetailView extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -83,7 +75,8 @@ class TutorDetailView extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 4,
+                      color: Colors.grey[100],
+                      elevation: 2,
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       child: Padding(
                         padding: const EdgeInsets.all(12.0),
@@ -95,31 +88,30 @@ class TutorDetailView extends StatelessWidget {
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.black,
                               ),
                             ),
                             const SizedBox(height: 8),
                             timeSlots.isEmpty
                                 ? const Text(
-                                  'No time slots available.',
-                                  style: TextStyle(color: Colors.grey),
-                                )
+                                    'No time slots available.',
+                                    style: TextStyle(color: Colors.grey),
+                                  )
                                 : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children:
-                                      timeSlots.map((slot) {
-                                        return Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 2,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: timeSlots.map((slot) {
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 2),
+                                        child: Text(
+                                          '• $slot',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black,
                                           ),
-                                          child: Text(
-                                            '• $slot',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
                           ],
                         ),
                       ),
@@ -132,18 +124,17 @@ class TutorDetailView extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder:
-                                (context) => BookingDetailView(
-                                  tutorName: tutor['name'] as String,
-                                  subjects: subjects,
-                                  availability: availability,
-                                ),
+                            builder: (context) => BookingDetailView(
+                              tutorName: tutor['name'] as String,
+                              subjects: subjects,
+                              availability: availability,
+                            ),
                           ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF4facfe),
+                        backgroundColor: const Color(0xFF4facfe),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 12,
@@ -180,13 +171,13 @@ class TutorDetailView extends StatelessWidget {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Colors.black,
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 14, color: Colors.black87),
+            style: const TextStyle(fontSize: 14, color: Colors.black),
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
@@ -207,32 +198,31 @@ class TutorDetailView extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Colors.black,
           ),
         ),
         const SizedBox(height: 4),
         subjects.isEmpty
             ? const Text(
-              'None',
-              style: TextStyle(fontSize: 14, color: Colors.black87),
-            )
+                'None',
+                style: TextStyle(fontSize: 14, color: Colors.black),
+              )
             : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children:
-                  subjects.map((subject) {
-                    final fee = fees[subject] ?? 0.0;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(
-                        '• $subject (RM${fee.toStringAsFixed(2)}/hr)',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: subjects.map((subject) {
+                  final fee = fees[subject] ?? 0.0;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      '• $subject (RM${fee.toStringAsFixed(2)}/hr)',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black,
                       ),
-                    );
-                  }).toList(),
-            ),
+                    ),
+                  );
+                }).toList(),
+              ),
       ],
     );
   }

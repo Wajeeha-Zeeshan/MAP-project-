@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../booking/booking_list_view.dart'; // Adjust path based on your project structure
+import '../booking/booking_list_view.dart';
 
 class TutorAvailabilityView extends StatefulWidget {
   final String userId;
@@ -33,27 +33,18 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
 
   Future<void> _fetchTutorData() async {
     try {
-      DocumentSnapshot doc =
-          await FirebaseFirestore.instance
-              .collection('tutors')
-              .doc(widget.userId)
-              .get();
+      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('tutors').doc(widget.userId).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         setState(() {
           _subjects = List<String>.from(data['subjects'] ?? []);
-          final availabilityData =
-              data['availability'] as Map<String, dynamic>?;
+          final availabilityData = data['availability'] as Map<String, dynamic>?;
           if (availabilityData != null) {
-            _availability = availabilityData.map(
-              (key, value) => MapEntry(key, List<String>.from(value)),
-            );
+            _availability = availabilityData.map((key, value) => MapEntry(key, List<String>.from(value)));
           }
           final feesData = data['fees'] as Map<String, dynamic>?;
           if (feesData != null) {
-            _fees = feesData.map(
-              (key, value) => MapEntry(key, value as double),
-            );
+            _fees = feesData.map((key, value) => MapEntry(key, value as double));
           }
           _isLoading = false;
         });
@@ -61,9 +52,7 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
         await _initializeTutorData();
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error fetching data: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching data: $e')));
       setState(() {
         _isLoading = false;
       });
@@ -72,39 +61,27 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
 
   Future<void> _initializeTutorData() async {
     try {
-      await FirebaseFirestore.instance
-          .collection('tutors')
-          .doc(widget.userId)
-          .set({
-            'uid': widget.userId,
-            'subjects': _subjects,
-            'availability': _availability,
-            'fees': _fees,
-          });
+      await FirebaseFirestore.instance.collection('tutors').doc(widget.userId).set({
+        'uid': widget.userId,
+        'subjects': _subjects,
+        'availability': _availability,
+        'fees': _fees,
+      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error initializing tutor data: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error initializing tutor data: $e')));
     }
   }
 
   Future<void> _updateTutorData() async {
     try {
-      await FirebaseFirestore.instance
-          .collection('tutors')
-          .doc(widget.userId)
-          .update({
-            'subjects': _subjects,
-            'availability': _availability,
-            'fees': _fees,
-          });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data updated successfully')),
-      );
+      await FirebaseFirestore.instance.collection('tutors').doc(widget.userId).update({
+        'subjects': _subjects,
+        'availability': _availability,
+        'fees': _fees,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data updated successfully')));
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error updating data: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating data: $e')));
     }
   }
 
@@ -125,27 +102,18 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
               ),
               TextField(
                 controller: feeController,
-                decoration: const InputDecoration(
-                  labelText: 'Fee per Hour (e.g., 50.0)',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                decoration: const InputDecoration(labelText: 'Fee per Hour (e.g., 50.0)'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             TextButton(
               onPressed: () {
                 final subject = subjectController.text.trim();
                 final fee = double.tryParse(feeController.text.trim()) ?? 0.0;
-                if (subject.isNotEmpty &&
-                    !_subjects.contains(subject) &&
-                    fee > 0) {
+                if (subject.isNotEmpty && !_subjects.contains(subject) && fee > 0) {
                   setState(() {
                     _subjects.add(subject);
                     _fees[subject] = fee;
@@ -154,9 +122,7 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
                   Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please enter a valid subject and fee'),
-                    ),
+                    const SnackBar(content: Text('Please enter a valid subject and fee')),
                   );
                 }
               },
@@ -169,9 +135,7 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
   }
 
   void _editFee(String subject) {
-    final feeController = TextEditingController(
-      text: _fees[subject].toString(),
-    );
+    final feeController = TextEditingController(text: _fees[subject].toString());
     showDialog(
       context: context,
       builder: (context) {
@@ -179,16 +143,11 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
           title: Text('Edit Fee for $subject'),
           content: TextField(
             controller: feeController,
-            decoration: const InputDecoration(
-              labelText: 'Fee per Hour (e.g., 50.0)',
-            ),
+            decoration: const InputDecoration(labelText: 'Fee per Hour (e.g., 50.0)'),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             TextButton(
               onPressed: () {
                 final fee = double.tryParse(feeController.text.trim()) ?? 0.0;
@@ -221,15 +180,10 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
           title: Text('Add Availability for $day'),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(
-              labelText: 'Time Slot (e.g., 9:00 AM - 10:00 AM)',
-            ),
+            decoration: const InputDecoration(labelText: 'Time Slot (e.g., 9:00 AM - 10:00 AM)'),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             TextButton(
               onPressed: () {
                 final timeSlot = controller.text.trim();
@@ -271,110 +225,98 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF8fd3fe), Color(0xFF4facfe)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child:
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Subjects You Teach',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8.0,
-                            children:
-                                _subjects.map((subject) {
-                                  return Chip(
-                                    label: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(subject),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'RM${_fees[subject]?.toStringAsFixed(2) ?? '0.00'}/hr',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    onDeleted: () {
+        color: Colors.white,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Subjects You Teach',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8.0,
+                          runSpacing: 8.0,
+                          children: _subjects.map((subject) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(subject, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 6),
+                                  Text('RM${_fees[subject]?.toStringAsFixed(2) ?? '0.00'}/hr', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(onTap: () => _editFee(subject), child: const Icon(Icons.edit, size: 18, color: Color(0xFF4facfe))),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    onTap: () {
                                       setState(() {
                                         _subjects.remove(subject);
                                         _fees.remove(subject);
                                       });
                                       _updateTutorData();
                                     },
-                                    deleteIcon: const Icon(
-                                      Icons.cancel,
-                                      size: 18,
-                                    ),
-                                    avatar: IconButton(
-                                      icon: const Icon(Icons.edit, size: 18),
-                                      onPressed: () => _editFee(subject),
-                                    ),
-                                  );
-                                }).toList(),
+                                    child: const Icon(Icons.close, size: 18, color: Colors.redAccent),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: _addSubject,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4facfe),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          const SizedBox(height: 10),
-                          ElevatedButton(
-                            onPressed: _addSubject,
-                            child: const Text('Add Subject'),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Availability',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          ..._availability.keys.map((day) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      day,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.add),
-                                      onPressed: () => _addAvailability(day),
-                                    ),
-                                  ],
+                          child: const Text('Add Subject'),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Availability',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                        const SizedBox(height: 10),
+                        ..._availability.keys.map((day) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(day, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black)),
+                                  IconButton(
+                                    icon: const Icon(Icons.add, color: Colors.black),
+                                    onPressed: () => _addAvailability(day),
+                                  ),
+                                ],
+                              ),
+                              if (_availability[day]!.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 8.0),
+                                  child: Text('No time slots added.', style: TextStyle(color: Colors.black54)),
                                 ),
-                                if (_availability[day]!.isEmpty)
-                                  const Text('No time slots added.'),
-                                ..._availability[day]!.map((slot) {
-                                  return ListTile(
-                                    title: Text(slot),
+                              ..._availability[day]!.map((slot) {
+                                return Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
+                                  child: ListTile(
+                                    title: Text(slot, style: const TextStyle(color: Colors.black)),
                                     trailing: IconButton(
-                                      icon: const Icon(Icons.delete),
+                                      icon: const Icon(Icons.delete, color: Colors.redAccent),
                                       onPressed: () {
                                         setState(() {
                                           _availability[day]!.remove(slot);
@@ -382,35 +324,28 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
                                         _updateTutorData();
                                       },
                                     ),
-                                  );
-                                }).toList(),
-                                const Divider(),
-                              ],
-                            );
-                          }).toList(),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: _viewBookings,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4facfe),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 14,
-                              ),
-                            ),
-                            child: const Text(
-                              'View Bookings',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
+                                  ),
+                                );
+                              }).toList(),
+                              const Divider(color: Colors.black12),
+                            ],
+                          );
+                        }).toList(),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _viewBookings,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4facfe),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                        ],
-                      ),
+                          child: const Text('View Bookings', style: TextStyle(fontSize: 16, color: Colors.white)),
+                        ),
+                      ],
                     ),
                   ),
                 ),
+              ),
       ),
     );
   }
