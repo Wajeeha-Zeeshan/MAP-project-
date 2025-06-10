@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../models/user_model.dart';
 import '../tutor/tutor_list_view.dart';
 import '../tutor/tutor_availability_view.dart';
+import '../booking/students_booking_view.dart';
+import '../tutor/qualifications_view.dart';
+import '../../viewmodels/tutor_viewmodel.dart';
 
 class ProfileView extends StatefulWidget {
   final UserModel user;
 
-  const ProfileView({required this.user, super.key});
+  const ProfileView({super.key, required this.user});
 
   @override
-  _ProfileViewState createState() => _ProfileViewState();
+  State<ProfileView> createState() => _ProfileViewState();
 }
 
 class _ProfileViewState extends State<ProfileView> {
@@ -58,6 +62,44 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+        backgroundColor: const Color(0xFF4facfe),
+        elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(
+              Icons.account_circle,
+              color: Colors.white,
+              size: 30,
+            ),
+            onSelected: (value) {
+              if (value == 'logout') {
+                Navigator.pop(context); // Replace with logout logic if needed
+              } else if (value == 'profile') {
+                _showProfileDialog();
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem<String>(
+                    value: 'profile',
+                    child: ListTile(
+                      leading: Icon(Icons.person),
+                      title: Text('Profile Info'),
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'logout',
+                    child: ListTile(
+                      leading: Icon(Icons.logout),
+                      title: Text('Logout'),
+                    ),
+                  ),
+                ],
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -93,7 +135,7 @@ class _ProfileViewState extends State<ProfileView> {
                       const SizedBox(height: 20),
                       Text(
                         _currentUser.role == 'student'
-                            ? '🎓  View your courses or browse tutors.'
+                            ? '🎓 View your courses or browse tutors.'
                             : '🧑‍🏫 Manage your classes here.',
                         style: const TextStyle(
                           fontSize: 16,
@@ -101,34 +143,29 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      if (_currentUser.role == 'student')
-                        const SizedBox(height: 20),
-                      if (_currentUser.role == 'student')
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4facfe),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 12,
+                      const SizedBox(height: 20),
+                      if (_currentUser.role == 'student') ...[
+                        _buildButton('Browse Tutors', () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const TutorListView(),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                          );
+                        }),
+                        const SizedBox(height: 10),
+                        _buildButton('View Bookings', () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => const StudentBookingListView(),
                             ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const TutorListView(),
-                              ),
-                            );
-                          },
-                          child: const Text('Browse Tutors'),
-                        ),
-                      if (_currentUser.role == 'teacher')
+                          );
+                        }),
+                      ],
+                      if (_currentUser.role == 'teacher') ...[
                         const SizedBox(height: 20),
-                      if (_currentUser.role == 'teacher')
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4facfe),
@@ -154,6 +191,26 @@ class _ProfileViewState extends State<ProfileView> {
                           },
                           child: const Text('Manage Availability'),
                         ),
+
+                        const SizedBox(height: 10), // 👈 Spacer between buttons
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => ChangeNotifierProvider(
+                                      create: (_) => TutorViewModel(),
+                                      child: QualificationsView(
+                                        uid: _currentUser.uid,
+                                      ),
+                                    ),
+                              ),
+                            );
+                          },
+                          child: const Text('Manage Qualifications'),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -162,166 +219,118 @@ class _ProfileViewState extends State<ProfileView> {
           ),
         ),
       ),
-      appBar: AppBar(
+    );
+  }
+
+  Widget _buildButton(String text, VoidCallback onPressed) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF4facfe),
-        elevation: 0,
-        title: const Text('Profile'),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(
-              Icons.account_circle,
-              color: Colors.white,
-              size: 30,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      onPressed: onPressed,
+      child: Text(text),
+    );
+  }
+
+  void _showProfileDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Profile Information'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDialogProfileItem('Name', _currentUser.name),
+                _buildDialogProfileItem('Email', _currentUser.email),
+                _buildDialogProfileItem('Role', _currentUser.role),
+                _buildDialogProfileItem('Age', _currentUser.age.toString()),
+              ],
             ),
-            onSelected: (value) {
-              if (value == 'logout') {
-                Navigator.pop(context);
-              } else if (value == 'profile') {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: const Text('Profile Information'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildDialogProfileItem('Name', _currentUser.name),
-                          _buildDialogProfileItem('Email', _currentUser.email),
-                          _buildDialogProfileItem('Role', _currentUser.role),
-                          _buildDialogProfileItem(
-                            'Age',
-                            _currentUser.age.toString(),
-                          ),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                final nameController = TextEditingController(
-                                  text: _currentUser.name,
-                                );
-                                final emailController = TextEditingController(
-                                  text: _currentUser.email,
-                                );
-                                final ageController = TextEditingController(
-                                  text: _currentUser.age.toString(),
-                                );
+            actions: [
+              TextButton(
+                onPressed: _showEditDialog,
+                child: const Text('Edit Profile'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+    );
+  }
 
-                                return AlertDialog(
-                                  title: const Text('Edit Profile'),
-                                  content: SingleChildScrollView(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        TextField(
-                                          controller: nameController,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Name',
-                                          ),
-                                        ),
-                                        TextField(
-                                          controller: emailController,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Email',
-                                          ),
-                                          keyboardType:
-                                              TextInputType.emailAddress,
-                                        ),
-                                        TextField(
-                                          controller: ageController,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Age',
-                                          ),
-                                          keyboardType: TextInputType.number,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        final newName =
-                                            nameController.text.trim();
-                                        final newEmail =
-                                            emailController.text.trim();
-                                        final newAge =
-                                            int.tryParse(
-                                              ageController.text.trim(),
-                                            ) ??
-                                            _currentUser.age;
+  void _showEditDialog() {
+    final nameController = TextEditingController(text: _currentUser.name);
+    final emailController = TextEditingController(text: _currentUser.email);
+    final ageController = TextEditingController(
+      text: _currentUser.age.toString(),
+    );
 
-                                        if (newName.isNotEmpty &&
-                                            newEmail.isNotEmpty) {
-                                          _updateUserProfile(
-                                            name: newName,
-                                            email: newEmail,
-                                            age: newAge,
-                                          );
-                                          Navigator.pop(
-                                            context,
-                                          ); // Close edit dialog
-                                          Navigator.pop(
-                                            context,
-                                          ); // Close profile info dialog
-                                        } else {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Name and Email cannot be empty',
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                      child: const Text('Save'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                          child: const Text('Edit Profile'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Close'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              }
-            },
-            itemBuilder:
-                (BuildContext context) => <PopupMenuEntry<String>>[
-                  const PopupMenuItem<String>(
-                    value: 'profile',
-                    child: ListTile(
-                      leading: Icon(Icons.person),
-                      title: Text('Profile Info'),
-                    ),
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Edit Profile'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Name'),
                   ),
-                  const PopupMenuItem<String>(
-                    value: 'logout',
-                    child: ListTile(
-                      leading: Icon(Icons.logout),
-                      title: Text('Logout'),
-                    ),
+                  TextField(
+                    controller: emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  TextField(
+                    controller: ageController,
+                    decoration: const InputDecoration(labelText: 'Age'),
+                    keyboardType: TextInputType.number,
                   ),
                 ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final newName = nameController.text.trim();
+                  final newEmail = emailController.text.trim();
+                  final newAge =
+                      int.tryParse(ageController.text.trim()) ??
+                      _currentUser.age;
+
+                  if (newName.isNotEmpty && newEmail.isNotEmpty) {
+                    _updateUserProfile(
+                      name: newName,
+                      email: newEmail,
+                      age: newAge,
+                    );
+                    Navigator.pop(context); // Close edit dialog
+                    Navigator.pop(context); // Close profile info dialog
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Name and Email cannot be empty'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 

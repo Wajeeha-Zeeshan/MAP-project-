@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../booking/booking_detail_view.dart';
+import 'package:provider/provider.dart';
+import '../../viewmodels/auth_viewmodel.dart';
+import '../review/review_form_view.dart';
 
 class TutorDetailView extends StatelessWidget {
   final Map<String, dynamic> tutor;
@@ -8,15 +11,29 @@ class TutorDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subjects = tutor['subjects'] as List<String>;
-    final availability = tutor['availability'] as Map<String, List<String>>;
+    final List<String> subjects = List<String>.from(
+      tutor['subjects'] as List<dynamic>? ?? [],
+    );
+
+    final Map<String, List<String>> availability =
+        (tutor['availability'] as Map<String, dynamic>?)?.map(
+          (key, value) =>
+              MapEntry(key, List<String>.from(value as List<dynamic>? ?? [])),
+        ) ??
+        {};
+
     final fees = tutor['fees'] as Map<String, double>? ?? <String, double>{};
+
+    final String tutorId = tutor['uid'] as String? ?? '';
+
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final String? currentStudentId = authViewModel.user?.uid;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF4facfe),
         elevation: 0,
-        title: Text(tutor['name'] as String),
+        title: Text(tutor['name'] as String? ?? 'Tutor Details'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -50,9 +67,20 @@ class TutorDetailView extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          _buildDetailRow('Name', tutor['name'] as String),
+                          _buildDetailRow(
+                            'Name',
+                            tutor['name'] as String? ?? 'N/A',
+                          ),
                           const SizedBox(height: 8),
-                          _buildDetailRow('Email', tutor['email'] as String),
+                          _buildDetailRow(
+                            'Email',
+                            tutor['email'] as String? ?? 'N/A',
+                          ),
+                          const SizedBox(height: 8),
+                          _buildDetailRow(
+                            'Qualification',
+                            tutor['qualification'] as String? ?? 'N/A',
+                          ),
                           const SizedBox(height: 8),
                           _buildSubjectsWithFees(subjects, fees),
                         ],
@@ -94,24 +122,27 @@ class TutorDetailView extends StatelessWidget {
                             const SizedBox(height: 8),
                             timeSlots.isEmpty
                                 ? const Text(
-                                    'No time slots available.',
-                                    style: TextStyle(color: Colors.grey),
-                                  )
+                                  'No time slots available.',
+                                  style: TextStyle(color: Colors.grey),
+                                )
                                 : Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: timeSlots.map((slot) {
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 2),
-                                        child: Text(
-                                          '• $slot',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.black,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children:
+                                      timeSlots.map((slot) {
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 2,
                                           ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
+                                          child: Text(
+                                            '• $slot',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                ),
                           ],
                         ),
                       ),
@@ -119,37 +150,105 @@ class TutorDetailView extends StatelessWidget {
                   }).toList(),
                   const SizedBox(height: 20),
                   Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BookingDetailView(
-                              tutorName: tutor['name'] as String,
-                              subjects: subjects,
-                              availability: availability,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            if (currentStudentId == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Please log in to book a tutor.',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => BookingDetailView(
+                                      tutorName:
+                                          tutor['name'] as String? ?? 'N/A',
+                                      tutorId: tutorId,
+                                      studentId: currentStudentId,
+                                      subjects: subjects,
+                                      availability: availability,
+                                    ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4facfe),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4facfe),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+                          child: const Text(
+                            'Book Tutor',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            if (currentStudentId == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Please log in to review a tutor.',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => ReviewFormView(
+                                      tutorId: tutorId,
+                                      studentId: currentStudentId,
+                                      tutorName:
+                                          tutor['name'] as String? ?? 'N/A',
+                                    ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4facfe),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: const Text(
+                            'Review Tutor',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Book Tutor',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -204,25 +303,26 @@ class TutorDetailView extends StatelessWidget {
         const SizedBox(height: 4),
         subjects.isEmpty
             ? const Text(
-                'None',
-                style: TextStyle(fontSize: 14, color: Colors.black),
-              )
+              'None',
+              style: TextStyle(fontSize: 14, color: Colors.black),
+            )
             : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: subjects.map((subject) {
-                  final fee = fees[subject] ?? 0.0;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Text(
-                      '• $subject (RM${fee.toStringAsFixed(2)}/hr)',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children:
+                  subjects.map((subject) {
+                    final fee = fees[subject] ?? 0.0;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        '• $subject (RM${fee.toStringAsFixed(2)}/hr)',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black,
+                        ),
                       ),
-                    ),
-                  );
-                }).toList(),
-              ),
+                    );
+                  }).toList(),
+            ),
       ],
     );
   }
