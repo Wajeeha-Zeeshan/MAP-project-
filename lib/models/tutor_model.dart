@@ -2,15 +2,22 @@ class TutorModel {
   final String uid;
   final List<String> subjects;
   final Map<String, List<String>> availability;
+  final String qualification; // ✅ NEW FIELD
 
   TutorModel({
     required this.uid,
     required this.subjects,
     required this.availability,
+    required this.qualification,
   });
 
   Map<String, dynamic> toMap() {
-    return {'uid': uid, 'subjects': subjects, 'availability': availability};
+    return {
+      'uid': uid,
+      'subjects': subjects,
+      'availability': availability,
+      'qualification': qualification, // ✅ ADD HERE
+    };
   }
 
   factory TutorModel.fromMap(Map<String, dynamic> map, String id) {
@@ -30,6 +37,7 @@ class TutorModel {
             'Saturday': [],
             'Sunday': [],
           },
+      qualification: map['qualification'] ?? '', // ✅ PARSE FROM MAP
     );
   }
 }

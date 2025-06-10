@@ -24,7 +24,6 @@ class TutorViewModel with ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Fetch users with role 'teacher'
       QuerySnapshot userSnapshot =
           await FirebaseFirestore.instance
               .collection('users')
@@ -39,7 +38,6 @@ class TutorViewModel with ChangeNotifier {
           userDoc.data() as Map<String, dynamic>,
         );
 
-        // Fetch corresponding tutor data from 'tutors' collection
         DocumentSnapshot tutorDoc =
             await FirebaseFirestore.instance
                 .collection('tutors')
@@ -53,7 +51,6 @@ class TutorViewModel with ChangeNotifier {
             user.uid,
           );
         } else {
-          // Initialize tutor data if it doesn't exist
           tutor = TutorModel(
             uid: user.uid,
             subjects: [],
@@ -66,6 +63,7 @@ class TutorViewModel with ChangeNotifier {
               'Saturday': [],
               'Sunday': [],
             },
+            qualification: '',
           );
           await FirebaseFirestore.instance
               .collection('tutors')
@@ -80,6 +78,7 @@ class TutorViewModel with ChangeNotifier {
           'email': user.email,
           'subjects': tutor.subjects,
           'availability': tutor.availability,
+          'qualification': tutor.qualification,
         });
       }
       _filterTutors();
@@ -95,21 +94,22 @@ class TutorViewModel with ChangeNotifier {
     String uid,
     List<String> subjects,
     Map<String, List<String>> availability,
+    String qualification,
   ) async {
     try {
-      // Update the tutors collection
       await FirebaseFirestore.instance.collection('tutors').doc(uid).update({
         'subjects': subjects,
         'availability': availability,
+        'qualification': qualification,
       });
 
-      // Update local state
       final tutorIndex = _tutors.indexWhere((tutor) => tutor.uid == uid);
       if (tutorIndex != -1) {
         _tutors[tutorIndex] = TutorModel(
           uid: uid,
           subjects: subjects,
           availability: availability,
+          qualification: qualification,
         );
       }
 
@@ -123,6 +123,7 @@ class TutorViewModel with ChangeNotifier {
           'email': _filteredTutors[filteredIndex]['email'],
           'subjects': subjects,
           'availability': availability,
+          'qualification': qualification,
         };
       }
 
