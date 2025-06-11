@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
-
 import '../../viewmodels/booking_viewmodel.dart';
 import '../../models/booking_model.dart';
 
 class BookingDetailView extends StatefulWidget {
   final String tutorName;
+  final String tutorId; // Added tutorId
+  final String studentId; // Added studentId
   final List<String> subjects;
   final Map<String, List<String>> availability;
 
   const BookingDetailView({
     required this.tutorName,
+    required this.tutorId,
+    required this.studentId,
     required this.subjects,
     required this.availability,
     super.key,
@@ -23,6 +26,7 @@ class _BookingDetailViewState extends State<BookingDetailView> {
   String? selectedSubject;
   String? selectedDay;
   String? selectedSlot;
+  bool _isLoading = false; // Added loading state
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +82,7 @@ class _BookingDetailViewState extends State<BookingDetailView> {
               onChanged: (value) {
                 setState(() {
                   selectedDay = value;
-                  selectedSlot = null;
+                  selectedSlot = null; // Reset time slot when day changes
                 });
               },
             ),
@@ -112,6 +116,16 @@ class _BookingDetailViewState extends State<BookingDetailView> {
                   ),
                 ],
               ),
+            if (!(selectedSubject != null &&
+                selectedDay != null &&
+                selectedSlot != null))
+              const Padding(
+                padding: EdgeInsets.only(top: 10),
+                child: Text(
+                  'Please select all fields to proceed.',
+                  style: TextStyle(color: Colors.red, fontSize: 14),
+                ),
+              ),
             const Spacer(),
             SizedBox(
               width: double.infinity,
@@ -119,7 +133,8 @@ class _BookingDetailViewState extends State<BookingDetailView> {
                 onPressed:
                     (selectedSubject != null &&
                             selectedDay != null &&
-                            selectedSlot != null)
+                            selectedSlot != null &&
+                            !_isLoading)
                         ? () {
                           _navigateToPayment(context);
                         }
@@ -131,10 +146,13 @@ class _BookingDetailViewState extends State<BookingDetailView> {
                     vertical: 14,
                   ),
                 ),
-                child: const Text(
-                  'Make Payment',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
+                child:
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                          'Make Payment',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
               ),
             ),
           ],
@@ -144,12 +162,11 @@ class _BookingDetailViewState extends State<BookingDetailView> {
   }
 
   void _navigateToPayment(BuildContext context) {
-    // Instantiate the BookingViewModel
     final bookingViewModel = BookingViewModel();
 
-    // Simulating a payment screen or process
     showDialog(
       context: context,
+      barrierDismissible: false, // Prevent dismissing during loading
       builder:
           (context) => AlertDialog(
             title: const Text('Proceed to Payment'),
@@ -157,23 +174,35 @@ class _BookingDetailViewState extends State<BookingDetailView> {
             actions: [
               TextButton(
                 onPressed: () async {
+                  setState(() {
+                    _isLoading = true; // Show loading indicator
+                  });
+
                   try {
-                    // Create a Booking instance
+                    // Create a Booking instance with all required fields
                     final booking = Booking(
                       tutorName: widget.tutorName,
+                      tutorId: widget.tutorId,
+                      studentId: widget.studentId,
                       subject: selectedSubject!,
                       day: selectedDay!,
                       timeSlot: selectedSlot!,
                       createdAt: DateTime.now(),
                     );
+
                     // Save the booking to Firestore
                     await bookingViewModel.saveBooking(booking);
+
                     // Close payment dialog
                     Navigator.of(context).pop();
+
                     // Show confirmation
                     _showBookingConfirmation(context);
                   } catch (e) {
-                    // Handle any errors during saving
+                    // Handle errors
+                    setState(() {
+                      _isLoading = false;
+                    });
                     Navigator.of(context).pop(); // Close payment dialog
                     showDialog(
                       context: context,
@@ -189,6 +218,10 @@ class _BookingDetailViewState extends State<BookingDetailView> {
                             ],
                           ),
                     );
+                  } finally {
+                    setState(() {
+                      _isLoading = false; // Reset loading state
+                    });
                   }
                 },
                 child: const Text('Pay & Confirm'),
@@ -213,8 +246,10 @@ class _BookingDetailViewState extends State<BookingDetailView> {
             ),
             actions: [
               TextButton(
-                onPressed:
-                    () => Navigator.popUntil(context, (route) => route.isFirst),
+                onPressed: () {
+                  Navigator.pop(context); // Close confirmation dialog
+                  Navigator.pop(context); // Navigate back to previous screen
+                },
                 child: const Text('OK'),
               ),
             ],
