@@ -92,7 +92,9 @@ class TutorListView extends StatelessWidget {
                                   children: [
                                     Text(
                                       tutor['email'] as String,
-                                      style: const TextStyle(color: Colors.black87),
+                                      style: const TextStyle(
+                                        color: Colors.black87,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -104,12 +106,18 @@ class TutorListView extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                trailing: const Icon(Icons.arrow_forward_ios, size: 18, color: Color(0xFF4facfe)),
+                                trailing: const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 18,
+                                  color: Color(0xFF4facfe),
+                                ),
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => TutorDetailView(tutor: tutor),
+                                      builder:
+                                          (context) =>
+                                              TutorDetailView(tutor: tutor),
                                     ),
                                   );
                                 },
@@ -129,3 +137,4 @@ class TutorListView extends StatelessWidget {
     );
   }
 }
+
