@@ -1,37 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../models/booking_model.dart'; // Adjust path based on your project structure
+import '../../models/booking_model.dart';
 
-class BookingListView extends StatefulWidget {
-  final String tutorName;
+class TutorBookingListView extends StatefulWidget {
+  final String tutorId;
 
-  const BookingListView({required this.tutorName, super.key});
+  const TutorBookingListView({required this.tutorId, super.key});
 
   @override
-  State<BookingListView> createState() => _BookingListViewState();
+  State<TutorBookingListView> createState() => _TutorBookingListViewState();
 }
 
-class _BookingListViewState extends State<BookingListView> {
+class _TutorBookingListViewState extends State<TutorBookingListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bookings for ${widget.tutorName}'),
+        title: const Text('My Bookings (Tutor)'),
         backgroundColor: const Color(0xFF4facfe),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream:
-            FirebaseFirestore.instance
-                .collection('bookings')
-                .where('tutorName', isEqualTo: widget.tutorName)
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('bookings')
+            .where('tutorId', isEqualTo: widget.tutorId)
+            .orderBy('createdAt', descending: true)
+            .snapshots()
+            .handleError((error, stackTrace) {
+              print('Stream error: $error, Stack trace: $stackTrace');
+              return null; // Prevents stream from breaking
+            })
+            .map((snapshot) {
+              print('Tutor bookings fetched: ${snapshot?.docs.length ?? 0}');
+              return snapshot;
+            }),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(
+            print('Snapshot error: ${snapshot.error}');
+            return Center(
               child: Text(
-                'Error loading bookings. Please try again.',
-                style: TextStyle(fontSize: 16, color: Colors.red),
+                'Error loading bookings: ${snapshot.error}',
+                style: const TextStyle(fontSize: 16, color: Colors.red),
               ),
             );
           }
@@ -43,7 +51,7 @@ class _BookingListViewState extends State<BookingListView> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text(
-                'No bookings found for this tutor.',
+                'You have no bookings yet.',
                 style: TextStyle(fontSize: 16),
               ),
             );
@@ -51,10 +59,17 @@ class _BookingListViewState extends State<BookingListView> {
 
           final bookings =
               snapshot.data!.docs
-                  .map(
-                    (doc) =>
-                        Booking.fromJson(doc.data() as Map<String, dynamic>),
-                  )
+                  .map((doc) {
+                    try {
+                      return Booking.fromJson(
+                        doc.data() as Map<String, dynamic>,
+                      );
+                    } catch (e) {
+                      print('Error parsing booking doc ${doc.id}: $e');
+                      return null; // Skip invalid documents
+                    }
+                  })
+                  .whereType<Booking>()
                   .toList();
 
           return ListView.builder(
@@ -71,13 +86,17 @@ class _BookingListViewState extends State<BookingListView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Subject: ${booking.subject}',
+                        'Student ID: ${booking.studentId}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
+                      Text(
+                        'Subject: ${booking.subject}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
                       Text(
                         'Day: ${booking.day}',
                         style: const TextStyle(fontSize: 14),
@@ -88,7 +107,7 @@ class _BookingListViewState extends State<BookingListView> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Booked on: ${booking.createdAt.toString()}',
+                        'Booked on: ${booking.createdAt.toLocal().toString().split('.')[0]}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
