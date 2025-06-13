@@ -1,10 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+
 import '../../viewmodels/tutor_viewmodel.dart';
 import 'tutor_detail_view.dart';
 
 class TutorListView extends StatelessWidget {
   const TutorListView({super.key});
+
+  // Average rating display widget
+  Widget buildAverageRating(String tutorId) {
+    return StreamBuilder<QuerySnapshot>(
+      stream:
+          FirebaseFirestore.instance
+              .collection('reviews')
+              .where('tutorId', isEqualTo: tutorId)
+              .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox();
+
+        final reviews = snapshot.data!.docs;
+        if (reviews.isEmpty) {
+          return const Text("No ratings", style: TextStyle(fontSize: 12));
+        }
+
+        double avgRating =
+            reviews
+                .map((doc) => (doc['rating'] ?? 0).toDouble())
+                .reduce((a, b) => a + b) /
+            reviews.length;
+
+        return Row(
+          children: [
+            RatingBarIndicator(
+              rating: avgRating,
+              itemBuilder:
+                  (context, _) => const Icon(Icons.star, color: Colors.amber),
+              itemCount: 5,
+              itemSize: 16.0,
+              direction: Axis.horizontal,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              avgRating.toStringAsFixed(1),
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +115,13 @@ class TutorListView extends StatelessWidget {
                           itemCount: tutorViewModel.filteredTutors.length,
                           itemBuilder: (context, index) {
                             final tutor = tutorViewModel.filteredTutors[index];
-                            final subjects = tutor['subjects'] as List<String>;
+                            final subjects = List<String>.from(
+                              tutor['subjects'] ?? [],
+                            );
+                            final tutorId =
+                                tutor['uid'] ??
+                                ''; // adjust based on your Firestore
+
                             return Card(
                               margin: const EdgeInsets.symmetric(vertical: 6),
                               elevation: 3,
@@ -81,7 +133,7 @@ class TutorListView extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 title: Text(
-                                  tutor['name'] as String,
+                                  tutor['name'] ?? 'No Name',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
@@ -91,7 +143,7 @@ class TutorListView extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      tutor['email'] as String,
+                                      tutor['email'] ?? 'No email',
                                       style: const TextStyle(
                                         color: Colors.black87,
                                       ),
@@ -104,6 +156,8 @@ class TutorListView extends StatelessWidget {
                                         color: Colors.grey,
                                       ),
                                     ),
+                                    const SizedBox(height: 4),
+                                    buildAverageRating(tutorId),
                                   ],
                                 ),
                                 trailing: const Icon(
@@ -137,4 +191,3 @@ class TutorListView extends StatelessWidget {
     );
   }
 }
-
