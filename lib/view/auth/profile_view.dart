@@ -27,329 +27,182 @@ class _ProfileViewState extends State<ProfileView> {
     _currentUser = widget.user;
   }
 
-  Future<void> _updateUserProfile({
-    required String name,
-    required String email,
-    required int age,
-  }) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_currentUser.uid)
-          .update({'name': name, 'email': email, 'age': age});
-
-      setState(() {
-        _currentUser = UserModel(
-          uid: _currentUser.uid,
-          name: name,
-          email: email,
-          role: _currentUser.role,
-          age: age,
-          password: _currentUser.password,
-        );
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error updating profile: $e')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: const Color(0xFF4facfe),
+        title: const Text('Dashboard'),
+        backgroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(
-              Icons.account_circle,
-              color: Colors.white,
-              size: 30,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProfileSummary(),
+              const SizedBox(height: 20),
+              Text(
+                _currentUser.role == 'student' ? 'Courses for You' : 'Manage Your Activities',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1,
+                  children: _currentUser.role == 'student'
+                      ? [
+                          _dashboardTile(
+                            icon: Icons.search,
+                            label: 'Browse Tutors',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const TutorListView()),
+                            ),
+                          ),
+                          _dashboardTile(
+                            icon: Icons.book,
+                            label: 'View Bookings',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const StudentBookingListView()),
+                            ),
+                          ),
+                          _courseCard('Frontend Design', '40RM'),
+                          _courseCard('Flutter Basics', '60RM'),
+                        ]
+                      : [
+                          _dashboardTile(
+                            icon: Icons.calendar_today,
+                            label: 'Availability',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => TutorAvailabilityView(userId: _currentUser.uid),
+                              ),
+                            ),
+                          ),
+                          _dashboardTile(
+                            icon: Icons.school,
+                            label: 'Qualifications',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ChangeNotifierProvider(
+                                  create: (_) => TutorViewModel(),
+                                  child: QualificationsView(uid: _currentUser.uid),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileSummary() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFe3f2fd),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 30,
+            backgroundColor: Color(0xFF4facfe),
+            child: Icon(Icons.person, color: Colors.white, size: 30),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _currentUser.name,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(_currentUser.email),
+                Text('Role: ${_currentUser.role}'),
+              ],
             ),
-            onSelected: (value) {
-              if (value == 'logout') {
-                Navigator.pop(context); // Replace with logout logic if needed
-              } else if (value == 'profile') {
-                _showProfileDialog();
-              }
-            },
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem<String>(
-                    value: 'profile',
-                    child: ListTile(
-                      leading: Icon(Icons.person),
-                      title: Text('Profile Info'),
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'logout',
-                    child: ListTile(
-                      leading: Icon(Icons.logout),
-                      title: Text('Logout'),
-                    ),
-                  ),
-                ],
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF8fd3fe), Color(0xFF4facfe)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 10,
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        _currentUser.role == 'student'
-                            ? 'Student Dashboard'
-                            : 'Tutor Dashboard',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF4facfe),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        _currentUser.role == 'student'
-                            ? '🎓 View your courses or browse tutors.'
-                            : '🧑‍🏫 Manage your classes here.',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      if (_currentUser.role == 'student') ...[
-                        _buildButton('Browse Tutors', () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const TutorListView(),
-                            ),
-                          );
-                        }),
-                        const SizedBox(height: 10),
-                        _buildButton('View Bookings', () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => const StudentBookingListView(),
-                            ),
-                          );
-                        }),
-                      ],
-                      if (_currentUser.role == 'teacher') ...[
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4facfe),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => TutorAvailabilityView(
-                                      userId: _currentUser.uid,
-                                    ),
-                              ),
-                            );
-                          },
-                          child: const Text('Manage Availability'),
-                        ),
+    );
+  }
 
-                        const SizedBox(height: 10), // 👈 Spacer between buttons
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => ChangeNotifierProvider(
-                                      create: (_) => TutorViewModel(),
-                                      child: QualificationsView(
-                                        uid: _currentUser.uid,
-                                      ),
-                                    ),
-                              ),
-                            );
-                          },
-                          child: const Text('Manage Qualifications'),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+  Widget _dashboardTile({required IconData icon, required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF4facfe),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 36, color: Colors.white),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.white,
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildButton(String text, VoidCallback onPressed) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF4facfe),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  Widget _courseCard(String title, String price) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFe3f2fd),
+        borderRadius: BorderRadius.circular(16),
       ),
-      onPressed: onPressed,
-      child: Text(text),
-    );
-  }
-
-  void _showProfileDialog() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Profile Information'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDialogProfileItem('Name', _currentUser.name),
-                _buildDialogProfileItem('Email', _currentUser.email),
-                _buildDialogProfileItem('Role', _currentUser.role),
-                _buildDialogProfileItem('Age', _currentUser.age.toString()),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: _showEditDialog,
-                child: const Text('Edit Profile'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _showEditDialog() {
-    final nameController = TextEditingController(text: _currentUser.name);
-    final emailController = TextEditingController(text: _currentUser.email);
-    final ageController = TextEditingController(
-      text: _currentUser.age.toString(),
-    );
-
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Edit Profile'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                  ),
-                  TextField(
-                    controller: emailController,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  TextField(
-                    controller: ageController,
-                    decoration: const InputDecoration(labelText: 'Age'),
-                    keyboardType: TextInputType.number,
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  final newName = nameController.text.trim();
-                  final newEmail = emailController.text.trim();
-                  final newAge =
-                      int.tryParse(ageController.text.trim()) ??
-                      _currentUser.age;
-
-                  if (newName.isNotEmpty && newEmail.isNotEmpty) {
-                    _updateUserProfile(
-                      name: newName,
-                      email: newEmail,
-                      age: newAge,
-                    );
-                    Navigator.pop(context); // Close edit dialog
-                    Navigator.pop(context); // Close profile info dialog
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Name and Email cannot be empty'),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Widget _buildDialogProfileItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 14),
-              overflow: TextOverflow.ellipsis,
+          Text(title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          Text('Price: $price', style: const TextStyle(fontSize: 14)),
+          const Spacer(),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4facfe),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Enroll'),
             ),
-          ),
+          )
         ],
       ),
     );

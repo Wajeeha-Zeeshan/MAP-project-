@@ -21,20 +21,20 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Learnloop',
         theme: ThemeData(
-          primaryColor: const Color(0xFF8fd3fe),
+          scaffoldBackgroundColor: Colors.transparent,
           appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF8fd3fe),
+            backgroundColor: Colors.transparent,
             elevation: 0,
             titleTextStyle: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Colors.transparent,
             ),
-            iconTheme: IconThemeData(color: Colors.white),
+            iconTheme: IconThemeData(color: Colors.transparent),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8fd3fe),
+              backgroundColor: Colors.black,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
@@ -43,6 +43,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
+        debugShowCheckedModeBanner: false,
         initialRoute: '/',
         routes: {
           '/': (context) => const HomeScreen(),
@@ -60,28 +61,20 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Learnloop')),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF8fd3fe), Color(0xFF4facfe)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(toolbarHeight: 0),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'lib/images/cover.png',
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Column(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              const Text(
-                'Welcome to Learnloop',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 30),
               ElevatedButton(
                 onPressed: () => Navigator.pushNamed(context, '/login'),
                 child: const Text('Go to Login'),
@@ -91,9 +84,10 @@ class HomeScreen extends StatelessWidget {
                 onPressed: () => Navigator.pushNamed(context, '/register'),
                 child: const Text('Go to Register'),
               ),
+              const SizedBox(height: 40),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
