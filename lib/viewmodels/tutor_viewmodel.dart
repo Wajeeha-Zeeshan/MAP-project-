@@ -64,6 +64,7 @@ class TutorViewModel with ChangeNotifier {
               'Sunday': [],
             },
             qualification: '',
+            fees: {}, // ✅ Fix: required field
           );
           await FirebaseFirestore.instance
               .collection('tutors')
@@ -79,6 +80,7 @@ class TutorViewModel with ChangeNotifier {
           'subjects': tutor.subjects,
           'availability': tutor.availability,
           'qualification': tutor.qualification,
+          'fees': tutor.fees, // ✅ include this for display if needed
         });
       }
       _filterTutors();
@@ -94,13 +96,15 @@ class TutorViewModel with ChangeNotifier {
     String uid,
     List<String> subjects,
     Map<String, List<String>> availability,
-    String qualification,
-  ) async {
+    String qualification, {
+    Map<String, double> fees = const {}, // ✅ Add optional parameter
+  }) async {
     try {
       await FirebaseFirestore.instance.collection('tutors').doc(uid).update({
         'subjects': subjects,
         'availability': availability,
         'qualification': qualification,
+        'fees': fees,
       });
 
       final tutorIndex = _tutors.indexWhere((tutor) => tutor.uid == uid);
@@ -110,6 +114,7 @@ class TutorViewModel with ChangeNotifier {
           subjects: subjects,
           availability: availability,
           qualification: qualification,
+          fees: fees, // ✅ Required
         );
       }
 
@@ -124,6 +129,7 @@ class TutorViewModel with ChangeNotifier {
           'subjects': subjects,
           'availability': availability,
           'qualification': qualification,
+          'fees': fees,
         };
       }
 
