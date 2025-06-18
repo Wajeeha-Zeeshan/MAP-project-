@@ -21,7 +21,7 @@ void main() async {
     //   options: DefaultFirebaseOptions.currentPlatform,
     // );
   } catch (e) {
-    debugPrint("❌ Firebase init failed: $e");
+    debugPrint(" Firebase init failed: $e");
   }
 
   runApp(const MyApp());
@@ -83,10 +83,7 @@ class HomeScreen extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           Positioned.fill(
-            child: Image.asset(
-              'lib/images/cover.png',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('lib/images/cover.png', fit: BoxFit.cover),
           ),
           Column(
             mainAxisAlignment: MainAxisAlignment.end,

@@ -1,14 +1,17 @@
+/// Fix added 🡒 `fees` ─ holds each subject’s hourly rate.
 class TutorModel {
   final String uid;
   final List<String> subjects;
   final Map<String, List<String>> availability;
-  final String qualification; // ✅ NEW FIELD
+  final String qualification;
+  final Map<String, double> fees; // 🆕 new field
 
   TutorModel({
     required this.uid,
     required this.subjects,
     required this.availability,
     required this.qualification,
+    required this.fees, // 🆕 ctor arg
   });
 
   Map<String, dynamic> toMap() {
@@ -16,11 +19,17 @@ class TutorModel {
       'uid': uid,
       'subjects': subjects,
       'availability': availability,
-      'qualification': qualification, // ✅ ADD HERE
+      'qualification': qualification,
+      'fees': fees, // 🆕 save to Firestore
     };
   }
 
   factory TutorModel.fromMap(Map<String, dynamic> map, String id) {
+    // Parse fees safely; if not present, empty map.
+    final Map<String, double> parsedFees = Map<String, dynamic>.from(
+      map['fees'] ?? {},
+    ).map((k, v) => MapEntry(k, (v as num).toDouble()));
+
     return TutorModel(
       uid: id,
       subjects: List<String>.from(map['subjects'] ?? []),
@@ -37,7 +46,8 @@ class TutorModel {
             'Saturday': [],
             'Sunday': [],
           },
-      qualification: map['qualification'] ?? '', // ✅ PARSE FROM MAP
+      qualification: map['qualification'] ?? '',
+      fees: parsedFees, // 🆕 assign
     );
   }
 }
