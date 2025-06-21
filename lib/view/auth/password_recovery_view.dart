@@ -2,79 +2,102 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 
-class PasswordRecoveryView extends StatefulWidget {
-  const PasswordRecoveryView({super.key});
-
-  @override
-  State<PasswordRecoveryView> createState() => _PasswordRecoveryViewState();
-}
-
-class _PasswordRecoveryViewState extends State<PasswordRecoveryView> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
-  }
+class PasswordRecoveryView extends StatelessWidget {
+  final TextEditingController _emailController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthViewModel>();
+    final authViewModel = Provider.of<AuthViewModel>(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Recover Password')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              const Text(
-                'Enter your email to receive a password reset link.',
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator:
-                    (v) =>
-                        v == null || !v.contains('@')
-                            ? 'Enter a valid email'
-                            : null,
-              ),
-              const SizedBox(height: 24),
-
-              // ─── Error Message ───
-              if (auth.error != null)
-                Text(auth.error!, style: const TextStyle(color: Colors.red)),
-
-              const SizedBox(height: 16),
-
-              // ─── Send Link Button ───
-              auth.loading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                    child: const Text('Send Reset Link'),
-                    onPressed: () async {
-                      if (!_formKey.currentState!.validate()) return;
-
-                      await auth.sendResetEmail(_emailController.text.trim());
-
-                      if (auth.error == null && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Reset link sent to your email.'),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF8fd3fe), Color(0xFF4facfe)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 10,
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Recover Your Password',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4facfe),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Enter your email',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.email),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 20),
+                      authViewModel.isLoading
+                          ? const CircularProgressIndicator()
+                          : ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4facfe),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () async {
+                              await authViewModel.recoverPassword(
+                                email: _emailController.text.trim(),
+                              );
+                            },
+                            child: const Text('Recover Password'),
                           ),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
+                      if (authViewModel.errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Text(
+                            authViewModel.errorMessage!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      if (authViewModel.recoveredPassword != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Text(
+                            'Your password is: ${authViewModel.recoveredPassword}',
+                            style: const TextStyle(color: Colors.green),
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Back to Login'),
+                      ),
+                    ],
                   ),
-            ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
