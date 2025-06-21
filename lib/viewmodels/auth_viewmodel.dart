@@ -1,109 +1,133 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-class UserModel {
-  final String uid;
-  final String email;
-  final String name;
-  final String role;
-  final int age;
-
-  UserModel({
-    required this.uid,
-    required this.email,
-    required this.name,
-    required this.role,
-    required this.age,
-  });
-
-  factory UserModel.fromMap(Map<String, dynamic> map) => UserModel(
-    uid: map['uid'] as String,
-    email: map['email'] as String,
-    name: map['name'] as String,
-    role: map['role'] as String,
-    age: (map['age'] as num).toInt(),
-  );
-
-  Map<String, dynamic> toMap() => {
-    'uid': uid,
-    'email': email,
-    'name': name,
-    'role': role,
-    'age': age,
-  };
-}
+import 'package:flutter/foundation.dart';
+import '../models/user_model.dart';
 
 class AuthViewModel with ChangeNotifier {
-  final _auth = FirebaseAuth.instance;
-  final _db = FirebaseFirestore.instance;
-
-  bool _busy = false;
-  String? _error;
+  bool _isLoading = false;
+  String? _errorMessage;
   UserModel? _user;
+  String? _recoveredPassword;
 
-  bool get loading => _busy;
-  String? get error => _error;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
   UserModel? get user => _user;
+  String? get recoveredPassword => _recoveredPassword;
 
-  // ─────────────────────────── SIGN-UP ────────────────────────────
-  Future<void> signUp({
+  Future<void> signup({
     required String email,
     required String password,
     required String name,
     required String role,
     required int age,
-  }) async => _runBusy(() async {
-    final cred = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password,
-    );
-
-    _user = UserModel(
-      uid: cred.user!.uid,
-      email: email.trim(),
-      name: name,
-      role: role,
-      age: age,
-    );
-
-    await _db.collection('users').doc(_user!.uid).set(_user!.toMap());
-  });
-
-  // ─────────────────────────── LOG-IN ─────────────────────────────
-  Future<void> login({required String email, required String password}) async =>
-      _runBusy(() async {
-        await _auth.signInWithEmailAndPassword(
-          email: email.trim(),
-          password: password,
-        );
-
-        final snap =
-            await _db.collection('users').doc(_auth.currentUser!.uid).get();
-
-        _user = UserModel.fromMap(snap.data()!);
-      });
-
-  // ───────────────────────── PASSWORD RESET ───────────────────────
-  Future<void> sendResetEmail(String email) async =>
-      _runBusy(() => _auth.sendPasswordResetEmail(email: email.trim()));
-
-  // ─────────────────────────── LOG-OUT ────────────────────────────
-  Future<void> logout() => _auth.signOut();
-
-  // ────────────────────────── HELPERS ─────────────────────────────
-  Future<void> _runBusy(Future<void> Function() task) async {
-    _busy = true;
-    _error = null;
-    notifyListeners();
+  }) async {
     try {
-      await task();
-    } on FirebaseAuthException catch (e) {
-      _error = e.message;
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      String uid = DateTime.now().millisecondsSinceEpoch.toString();
+
+      UserModel userModel = UserModel(
+        uid: uid,
+        email: email,
+        name: name,
+        role: role,
+        age: age,
+        password: password,
+      );
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .set(userModel.toMap());
+
+      _user = userModel;
+      print('User registered with UID: $uid and email: $email');
     } catch (e) {
-      _error = e.toString();
+      _errorMessage = e.toString();
+      print('Signup error: $e');
     } finally {
-      _busy = false;
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> login({required String email, required String password}) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      print('Attempting login for email: $email');
+      QuerySnapshot query =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
+
+      print('Query results: ${query.docs.length} documents found');
+      if (query.docs.isEmpty) {
+        throw Exception('User with email $email not found');
+      }
+
+      var userDoc = query.docs.first;
+      UserModel userModel = UserModel.fromMap(
+        userDoc.data() as Map<String, dynamic>,
+      );
+      print('Retrieved user: ${userModel.toMap()}');
+
+      if (userModel.password != password.trim()) {
+        print(
+          'Provided password: ${password.trim()}, Stored password: ${userModel.password}',
+        );
+        throw Exception('Incorrect password for user $email');
+      }
+
+      _user = userModel;
+      print(
+        'Login successful for user: ${userModel.email} with role: ${userModel.role}',
+      );
+    } catch (e) {
+      _errorMessage = e.toString();
+      print('Login error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> recoverPassword({required String email}) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      _recoveredPassword = null;
+      notifyListeners();
+
+      print('Attempting password recovery for email: $email');
+      QuerySnapshot query =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
+
+      print('Query results: ${query.docs.length} documents found');
+      if (query.docs.isEmpty) {
+        throw Exception('User with email $email not found');
+      }
+
+      var userDoc = query.docs.first;
+      UserModel userModel = UserModel.fromMap(
+        userDoc.data() as Map<String, dynamic>,
+      );
+      _recoveredPassword = userModel.password;
+      print('Password recovered: $_recoveredPassword');
+    } catch (e) {
+      _errorMessage = e.toString();
+      print('Password recovery error: $e');
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
