@@ -1,29 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-
 import 'view/auth/register_view.dart';
 import 'view/auth/login_view.dart';
 import 'viewmodels/auth_viewmodel.dart';
 
-// Uncomment the line below only if you generated `firebase_options.dart`
-// import 'firebase_options.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    // Option A: If you did NOT use flutterfire CLI
-    await Firebase.initializeApp();
-
-    // Option B: If you used FlutterFire CLI and have firebase_options.dart
-    // await Firebase.initializeApp(
-    //   options: DefaultFirebaseOptions.currentPlatform,
-    // );
-  } catch (e) {
-    debugPrint(" Firebase init failed: $e");
-  }
-
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
