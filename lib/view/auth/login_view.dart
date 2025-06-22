@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../auth/profile_view.dart';
 import 'password_recovery_view.dart';
+import '../admin/AdminDashboard_view.dart'; // 🔹 Add this import
 
 class LoginView extends StatelessWidget {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  LoginView({super.key}); // Add a constructor with key
 
   @override
   Widget build(BuildContext context) {
@@ -78,24 +81,33 @@ class LoginView extends StatelessWidget {
                             ),
                           ),
                           onPressed: () async {
-                            print(
-                              'Login attempt - Email: ${_emailController.text}, Password: ${_passwordController.text}',
-                            );
+                            // Login attempt
                             await authViewModel.login(
                               email: _emailController.text.trim(),
                               password: _passwordController.text.trim(),
                             );
+
                             if (authViewModel.errorMessage == null &&
                                 authViewModel.user != null) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => ProfileView(
-                                        user: authViewModel.user!,
-                                      ),
-                                ),
-                              );
+                              // Check user role
+                              if (authViewModel.user!.role == 'admin') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const AdminDashboardView(),
+                                  ),
+                                );
+                              } else {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => ProfileView(
+                                          user: authViewModel.user!,
+                                        ),
+                                  ),
+                                );
+                              }
                             }
                           },
                           child: const Text('Login'),
@@ -110,18 +122,20 @@ class LoginView extends StatelessWidget {
                       ),
                     const SizedBox(height: 10),
                     TextButton(
-                      onPressed:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PasswordRecoveryView(),
-                            ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PasswordRecoveryView(),
                           ),
+                        );
+                      },
                       child: const Text('Forgot Password?'),
                     ),
                     TextButton(
-                      onPressed:
-                          () => Navigator.pushNamed(context, '/register'),
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/register');
+                      },
                       child: const Text('Don’t have an account? Register'),
                     ),
                   ],

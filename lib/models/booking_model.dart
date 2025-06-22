@@ -1,14 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Booking {
-  final String? id; // Optional, can be Firestore doc ID
+  final String? id; // Firestore document ID (optional)
   final String tutorName;
-  final String tutorId; // Required field
-  final String studentId; // Required field
+  final String tutorId;
+  final String studentId;
   final String subject;
   final String day;
+  final String date;
   final String timeSlot;
   final DateTime createdAt;
+  final String status; // 'pending', 'accepted', 'rejected', 'paid'
+  final bool isPaid;
 
   Booking({
     this.id,
@@ -17,36 +20,34 @@ class Booking {
     required this.studentId,
     required this.subject,
     required this.day,
+    required this.date,
     required this.timeSlot,
     required this.createdAt,
+    this.status = 'pending',
+    this.isPaid = false,
   });
 
-  // Factory constructor for creating a Booking from a Firestore document
-  factory Booking.fromJson(Map<String, dynamic> json) {
-    try {
-      return Booking(
-        id: json['id'] as String?,
-        tutorName: json['tutorName'] as String? ?? 'Unknown Tutor',
-        tutorId: json['tutorId'] as String? ?? '', // Handle missing tutorId
-        studentId:
-            json['studentId'] as String? ?? '', // Handle missing studentId
-        subject: json['subject'] as String? ?? 'Unknown Subject',
-        day: json['day'] as String? ?? 'Unknown Day',
-        timeSlot: json['timeSlot'] as String? ?? 'Unknown Time',
-        createdAt:
-            (json['createdAt'] is Timestamp)
-                ? (json['createdAt'] as Timestamp).toDate()
-                : DateTime.parse(
-                  json['createdAt'] as String,
-                ), // Handle string or Timestamp
-      );
-    } catch (e) {
-      print('Error parsing booking: $e');
-      rethrow;
-    }
+  /// Convert Firestore document into Booking object
+  factory Booking.fromJson(Map<String, dynamic> json, [String? documentId]) {
+    return Booking(
+      id: documentId,
+      tutorName: json['tutorName'] ?? '',
+      tutorId: json['tutorId'] ?? '',
+      studentId: json['studentId'] ?? '',
+      subject: json['subject'] ?? '',
+      day: json['day'] ?? '',
+      date: json['date'] ?? '',
+      timeSlot: json['timeSlot'] ?? '',
+      createdAt:
+          json['createdAt'] is Timestamp
+              ? (json['createdAt'] as Timestamp).toDate()
+              : DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+      status: json['status'] ?? 'pending',
+      isPaid: json['isPaid'] ?? false,
+    );
   }
 
-  // Method to convert a Booking to a Firestore document
+  /// Convert Booking object into Firestore-compatible map
   Map<String, dynamic> toJson() {
     return {
       'tutorName': tutorName,
@@ -54,8 +55,11 @@ class Booking {
       'studentId': studentId,
       'subject': subject,
       'day': day,
+      'date': date,
       'timeSlot': timeSlot,
       'createdAt': Timestamp.fromDate(createdAt),
+      'status': status,
+      'isPaid': isPaid,
     };
   }
 }

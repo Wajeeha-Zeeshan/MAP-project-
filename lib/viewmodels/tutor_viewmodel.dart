@@ -65,6 +65,7 @@ class TutorViewModel with ChangeNotifier {
             },
             qualification: '',
           );
+
           await FirebaseFirestore.instance
               .collection('tutors')
               .doc(user.uid)
@@ -81,6 +82,7 @@ class TutorViewModel with ChangeNotifier {
           'qualification': tutor.qualification,
         });
       }
+
       _filterTutors();
     } catch (e) {
       _errorMessage = 'Error fetching tutors: $e';
@@ -93,7 +95,7 @@ class TutorViewModel with ChangeNotifier {
   Future<void> saveTutorData(
     String uid,
     List<String> subjects,
-    Map<String, List<String>> availability,
+    Map<String, List<Map<String, String>>> availability,
     String qualification,
   ) async {
     try {
