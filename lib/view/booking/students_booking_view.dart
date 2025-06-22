@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/booking_model.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/booking_viewmodel.dart';
@@ -21,10 +22,6 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
     if (_studentId == null) {
       final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
       _studentId = authViewModel.user?.uid;
-      print('Student ID set to: $_studentId');
-      if (_studentId == null) {
-        print('Warning: AuthViewModel user is null or no UID found');
-      }
     }
   }
 
@@ -51,22 +48,14 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
         backgroundColor: const Color(0xFF4facfe),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('bookings')
-            .where('studentId', isEqualTo: _studentId)
-            .orderBy('createdAt', descending: true)
-            .snapshots()
-            .handleError((error, stackTrace) {
-              print('Stream error: $error, Stack trace: $stackTrace');
-              return null; // Prevents stream from breaking
-            })
-            .map((snapshot) {
-              print('Student bookings fetched: ${snapshot?.docs.length ?? 0}');
-              return snapshot;
-            }),
+        stream:
+            FirebaseFirestore.instance
+                .collection('bookings')
+                .where('studentId', isEqualTo: _studentId)
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            print('Snapshot error: ${snapshot.error}');
             return Center(
               child: Text(
                 'Error loading bookings: ${snapshot.error}',
@@ -89,26 +78,20 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
           }
 
           final bookings =
-              snapshot.data!.docs
-                  .map((doc) {
-                    try {
-                      return Booking.fromJson(
-                        doc.data() as Map<String, dynamic>,
-                      );
-                    } catch (e) {
-                      print('Error parsing booking doc ${doc.id}: $e');
-                      return null; // Skip invalid documents
-                    }
-                  })
-                  .whereType<Booking>()
-                  .toList();
+              snapshot.data!.docs.map((doc) {
+                return Booking.fromJson(
+                  doc.data() as Map<String, dynamic>,
+                  doc.id,
+                );
+              }).toList();
 
           return ListView.builder(
             padding: const EdgeInsets.all(16.0),
             itemCount: bookings.length,
             itemBuilder: (context, index) {
               final booking = bookings[index];
-              final docId = snapshot.data!.docs[index].id; // Get document ID
+              final docId = booking.id!;
+
               return Card(
                 elevation: 4,
                 margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -125,17 +108,23 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
                         ),
                       ),
                       const SizedBox(height: 8),
+                      Text('Subject: ${booking.subject}'),
+                      Text('Day: ${booking.day}'),
+                      Text('Date: ${booking.date}'),
+                      Text('Time: ${booking.timeSlot}'),
+                      const SizedBox(height: 8),
                       Text(
-                        'Subject: ${booking.subject}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        'Day: ${booking.day}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        'Time: ${booking.timeSlot}',
-                        style: const TextStyle(fontSize: 14),
+                        'Status: ${booking.status}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              booking.status == 'confirmed'
+                                  ? Colors.green
+                                  : booking.status == 'pending'
+                                  ? Colors.orange
+                                  : Colors.blueGrey,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -145,7 +134,68 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
                           color: Colors.grey,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
+                      if (booking.status == 'confirmed' &&
+                          booking.isPaid != true)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                // Stripe Payment Logic (Optional)
+                              },
+                              icon: const Icon(Icons.payment),
+                              label: const Text('Pay with Stripe'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple,
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                final viewModel = BookingViewModel();
+                                await viewModel.markBookingAsPaid(docId);
+
+                                // 🔔 Send notification to tutor
+                                await FirebaseFirestore.instance
+                                    .collection('notifications')
+                                    .add({
+                                      'senderId': booking.studentId,
+                                      'receiverId': booking.tutorId,
+                                      'message':
+                                          'Payment for your session with student ${booking.studentId} for ${booking.subject} has been completed.',
+                                      'type': 'payment_status',
+                                      'timestamp': Timestamp.now(),
+                                      'isRead': false,
+                                    });
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Marked as paid!'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+
+                                setState(() {});
+                              },
+                              icon: const Icon(Icons.check),
+                              label: const Text('Mark as Paid'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (booking.status == 'confirmed' &&
+                          booking.isPaid == true)
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: Chip(
+                            label: Text('Paid'),
+                            backgroundColor: Colors.green,
+                            labelStyle: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -156,12 +206,9 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
                           ),
                           const SizedBox(width: 8),
                           ElevatedButton(
-                            onPressed:
-                                () =>
-                                    _showCancelDialog(context, docId, booking),
+                            onPressed: () => _showCancelDialog(context, docId),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Colors.red, // Red for cancel action
+                              backgroundColor: Colors.red,
                             ),
                             child: const Text('Cancel'),
                           ),
@@ -180,155 +227,102 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
 
   void _showEditDialog(BuildContext context, String docId, Booking booking) {
     final _formKey = GlobalKey<FormState>();
-    String tutorName = booking.tutorName;
     String subject = booking.subject;
     String day = booking.day;
+    String date = booking.date;
     String timeSlot = booking.timeSlot;
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Booking'),
-          content: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Edit Booking'),
+            content: Form(
+              key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextFormField(
-                    initialValue: tutorName,
-                    decoration: const InputDecoration(labelText: 'Tutor Name'),
-                    validator:
-                        (value) =>
-                            value!.isEmpty ? 'Please enter tutor name' : null,
-                    onSaved: (value) => tutorName = value!,
-                  ),
-                  TextFormField(
                     initialValue: subject,
                     decoration: const InputDecoration(labelText: 'Subject'),
-                    validator:
-                        (value) =>
-                            value!.isEmpty ? 'Please enter subject' : null,
                     onSaved: (value) => subject = value!,
                   ),
                   TextFormField(
                     initialValue: day,
                     decoration: const InputDecoration(labelText: 'Day'),
-                    validator:
-                        (value) => value!.isEmpty ? 'Please enter day' : null,
                     onSaved: (value) => day = value!,
+                  ),
+                  TextFormField(
+                    initialValue: date,
+                    decoration: const InputDecoration(labelText: 'Date'),
+                    onSaved: (value) => date = value!,
                   ),
                   TextFormField(
                     initialValue: timeSlot,
                     decoration: const InputDecoration(labelText: 'Time Slot'),
-                    validator:
-                        (value) =>
-                            value!.isEmpty ? 'Please enter time slot' : null,
                     onSaved: (value) => timeSlot = value!,
                   ),
                 ],
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
                   _formKey.currentState!.save();
                   final updatedBooking = Booking(
                     id: booking.id,
-                    tutorName: tutorName,
+                    tutorName: booking.tutorName,
                     tutorId: booking.tutorId,
                     studentId: booking.studentId,
                     subject: subject,
                     day: day,
+                    date: date,
                     timeSlot: timeSlot,
                     createdAt: booking.createdAt,
+                    status: booking.status,
+                    isPaid: booking.isPaid,
                   );
                   final viewModel = BookingViewModel();
-                  try {
-                    await viewModel.updateBooking(docId, updatedBooking);
-                    Navigator.pop(context);
-                    // Show success message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Data updated successfully'),
-                        duration: Duration(seconds: 2),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    setState(() {}); // Refresh the UI
-                  } catch (e) {
-                    // Handle any errors during update
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error updating booking: $e'),
-                        duration: const Duration(seconds: 3),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+                  await viewModel.updateBooking(docId, updatedBooking);
+                  Navigator.pop(context);
+                  setState(() {});
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
     );
   }
 
-  void _showCancelDialog(BuildContext context, String docId, Booking booking) {
+  void _showCancelDialog(BuildContext context, String docId) {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Cancel Booking'),
-          content: const Text(
-            'Are you sure you want to cancel this booking? This action cannot be undone.',
-            style: TextStyle(fontSize: 16),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('No'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Cancel Booking'),
+            content: const Text(
+              'Are you sure you want to cancel this booking?',
             ),
-            TextButton(
-              onPressed: () async {
-                final viewModel = BookingViewModel();
-                try {
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final viewModel = BookingViewModel();
                   await viewModel.deleteBooking(docId);
                   Navigator.pop(context);
-                  // Show success message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Booking cancelled successfully'),
-                      duration: Duration(seconds: 2),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  setState(() {}); // Refresh the UI
-                } catch (e) {
-                  // Handle any errors during deletion
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error cancelling booking: $e'),
-                      duration: const Duration(seconds: 3),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Yes', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
+                  setState(() {});
+                },
+                child: const Text('Yes', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
     );
   }
 }

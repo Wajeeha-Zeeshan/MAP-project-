@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../booking/booking_detail_view.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../booking/booking_detail_view.dart';
 import '../review/review_form_view.dart';
 
 class TutorDetailView extends StatelessWidget {
@@ -15,19 +16,39 @@ class TutorDetailView extends StatelessWidget {
       tutor['subjects'] as List<dynamic>? ?? [],
     );
 
-    final Map<String, List<String>> availability =
+    final Map<String, List<Map<String, String>>> dayBasedAvailability =
         (tutor['availability'] as Map<String, dynamic>?)?.map(
-          (key, value) =>
-              MapEntry(key, List<String>.from(value as List<dynamic>? ?? [])),
+          (key, value) => MapEntry(
+            key,
+            List<Map<String, String>>.from(
+              value.map<Map<String, String>>(
+                (item) => Map<String, String>.from(item ?? {}),
+              ),
+            ),
+          ),
+        ) ??
+        {
+          'Monday': [],
+          'Tuesday': [],
+          'Wednesday': [],
+          'Thursday': [],
+          'Friday': [],
+          'Saturday': [],
+          'Sunday': [],
+        };
+
+    final Map<String, double> fees =
+        (tutor['fees'] as Map?)?.map(
+          (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
         ) ??
         {};
 
-    final fees = tutor['fees'] as Map<String, double>? ?? <String, double>{};
-
     final String tutorId = tutor['uid'] as String? ?? '';
-
     final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
     final String? currentStudentId = authViewModel.user?.uid;
+
+    final Map<String, List<Map<String, String>>> dateBasedAvailability =
+        _convertToDateBasedAvailability(dayBasedAvailability);
 
     return Scaffold(
       appBar: AppBar(
@@ -97,8 +118,8 @@ class TutorDetailView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  ...availability.keys.map((day) {
-                    final timeSlots = availability[day]!;
+                  ...dateBasedAvailability.keys.map((date) {
+                    final timeSlots = dateBasedAvailability[date]!;
                     return Card(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -112,7 +133,9 @@ class TutorDetailView extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              day,
+                              DateFormat(
+                                'yyyy-MM-dd (EEEE)',
+                              ).format(DateTime.parse(date)),
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -128,13 +151,14 @@ class TutorDetailView extends StatelessWidget {
                                 : Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children:
-                                      timeSlots.map((slot) {
+                                      timeSlots.map((slotMap) {
+                                        final time = slotMap['time'] ?? '';
                                         return Padding(
                                           padding: const EdgeInsets.symmetric(
                                             vertical: 2,
                                           ),
                                           child: Text(
-                                            '• $slot',
+                                            '• $time',
                                             style: const TextStyle(
                                               fontSize: 14,
                                               color: Colors.black,
@@ -177,7 +201,17 @@ class TutorDetailView extends StatelessWidget {
                                       tutorId: tutorId,
                                       studentId: currentStudentId,
                                       subjects: subjects,
-                                      availability: availability,
+                                      availability: dayBasedAvailability.map(
+                                        (day, slots) => MapEntry(
+                                          day,
+                                          slots
+                                              .map(
+                                                (slotMap) =>
+                                                    slotMap['time'] ?? '',
+                                              )
+                                              .toList(),
+                                        ),
+                                      ),
                                     ),
                               ),
                             );
@@ -259,6 +293,35 @@ class TutorDetailView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Map<String, List<Map<String, String>>> _convertToDateBasedAvailability(
+    Map<String, List<Map<String, String>>> dayBasedAvailability,
+  ) {
+    final Map<String, List<Map<String, String>>> dateBasedAvailability = {};
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+
+    const daysOfWeek = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+
+    for (var i = 0; i < daysOfWeek.length; i++) {
+      final day = daysOfWeek[i];
+      final date = startOfWeek.add(Duration(days: i));
+      final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+      dateBasedAvailability[formattedDate] = List<Map<String, String>>.from(
+        dayBasedAvailability[day] ?? [],
+      );
+    }
+
+    return dateBasedAvailability;
   }
 
   Widget _buildDetailRow(String label, String value) {

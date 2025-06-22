@@ -12,6 +12,11 @@ class TutorBookingListView extends StatefulWidget {
 }
 
 class _TutorBookingListViewState extends State<TutorBookingListView> {
+  final bookingsRef = FirebaseFirestore.instance.collection('bookings');
+  final notificationsRef = FirebaseFirestore.instance.collection(
+    'notifications',
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,22 +25,13 @@ class _TutorBookingListViewState extends State<TutorBookingListView> {
         backgroundColor: const Color(0xFF4facfe),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('bookings')
-            .where('tutorId', isEqualTo: widget.tutorId)
-            .orderBy('createdAt', descending: true)
-            .snapshots()
-            .handleError((error, stackTrace) {
-              print('Stream error: $error, Stack trace: $stackTrace');
-              return null; // Prevents stream from breaking
-            })
-            .map((snapshot) {
-              print('Tutor bookings fetched: ${snapshot?.docs.length ?? 0}');
-              return snapshot;
-            }),
+        stream:
+            bookingsRef
+                .where('tutorId', isEqualTo: widget.tutorId)
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            print('Snapshot error: ${snapshot.error}');
             return Center(
               child: Text(
                 'Error loading bookings: ${snapshot.error}',
@@ -48,79 +44,155 @@ class _TutorBookingListViewState extends State<TutorBookingListView> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'You have no bookings yet.',
-                style: TextStyle(fontSize: 16),
-              ),
-            );
-          }
-
-          final bookings =
-              snapshot.data!.docs
-                  .map((doc) {
-                    try {
-                      return Booking.fromJson(
-                        doc.data() as Map<String, dynamic>,
-                      );
-                    } catch (e) {
-                      print('Error parsing booking doc ${doc.id}: $e');
-                      return null; // Skip invalid documents
-                    }
-                  })
-                  .whereType<Booking>()
-                  .toList();
+          final docs = snapshot.data!.docs;
 
           return ListView.builder(
             padding: const EdgeInsets.all(16.0),
-            itemCount: bookings.length,
+            itemCount: docs.length,
             itemBuilder: (context, index) {
-              final booking = bookings[index];
-              return Card(
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Student ID: ${booking.studentId}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+              final doc = docs[index];
+              final data = doc.data() as Map<String, dynamic>;
+
+              try {
+                final booking = Booking.fromJson(data);
+                final status = data['status'] ?? 'pending';
+
+                return Card(
+                  elevation: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Student ID: ${booking.studentId}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Subject: ${booking.subject}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        'Day: ${booking.day}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        'Time: ${booking.timeSlot}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Booked on: ${booking.createdAt.toLocal().toString().split('.')[0]}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                        const SizedBox(height: 8),
+                        Text('Subject: ${booking.subject}'),
+                        Text('Day: ${booking.day}'),
+                        Text('Date: ${booking.date}'),
+                        Text('Time: ${booking.timeSlot}'),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Status: $status',
+                          style: TextStyle(
+                            color:
+                                status == 'confirmed'
+                                    ? Colors.green
+                                    : Colors.orange,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Booked on: ${booking.createdAt.toLocal().toString().split('.')[0]}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        if (status == 'pending') ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                icon: const Icon(
+                                  Icons.check,
+                                  color: Colors.green,
+                                ),
+                                label: const Text('Accept'),
+                                onPressed:
+                                    () => _updateBookingStatus(
+                                      doc.id,
+                                      'confirmed',
+                                      booking,
+                                    ),
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton.icon(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                ),
+                                label: const Text('Reject'),
+                                onPressed: () => _deleteBooking(doc.id),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-              );
+                );
+              } catch (e) {
+                print('Error parsing booking: $e');
+                return const SizedBox();
+              }
             },
           );
         },
       ),
     );
+  }
+
+  Future<void> _updateBookingStatus(
+    String docId,
+    String status,
+    Booking booking,
+  ) async {
+    try {
+      await bookingsRef.doc(docId).update({'status': status});
+
+      // 🔔 Send notification to student
+      await notificationsRef.add({
+        'senderId': booking.tutorId,
+        'receiverId': booking.studentId,
+        'message':
+            'Your booking request for ${booking.subject} on ${booking.date} at ${booking.timeSlot} has been approved.',
+        'type': 'booking_status',
+        'timestamp': Timestamp.now(),
+        'isRead': false,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Booking marked as $status'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Error updating booking: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update booking: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteBooking(String docId) async {
+    try {
+      await bookingsRef.doc(docId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Booking rejected and removed'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      print('Error deleting booking: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete booking: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

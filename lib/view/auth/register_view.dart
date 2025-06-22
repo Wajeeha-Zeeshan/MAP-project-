@@ -7,7 +7,9 @@ class RegisterView extends StatelessWidget {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
-  String? _role = 'student'; // Default role
+  final ValueNotifier<String?> _role = ValueNotifier<String?>(
+    'student',
+  ); // 🔄 Updated to ValueNotifier
 
   @override
   Widget build(BuildContext context) {
@@ -16,13 +18,13 @@ class RegisterView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Register'),
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+        backgroundColor: Colors.white,
         elevation: 0,
       ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 255, 255, 255), Color(0xFF4facfe)],
+            colors: [Colors.white, Color(0xFF4facfe)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -88,23 +90,35 @@ class RegisterView extends StatelessWidget {
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: _role,
-                      decoration: const InputDecoration(
-                        labelText: 'Role',
-                        border: OutlineInputBorder(),
-                      ),
-                      items:
-                          ['student', 'teacher'].map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                      onChanged: (String? newValue) {
-                        _role = newValue;
+
+                    // 🔽 Updated to include 'admin'
+                    ValueListenableBuilder<String?>(
+                      valueListenable: _role,
+                      builder: (context, value, _) {
+                        return DropdownButtonFormField<String>(
+                          value: value,
+                          decoration: const InputDecoration(
+                            labelText: 'Role',
+                            border: OutlineInputBorder(),
+                          ),
+                          items:
+                              ['student', 'teacher', 'admin'].map((
+                                String value,
+                              ) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                    value[0].toUpperCase() + value.substring(1),
+                                  ),
+                                );
+                              }).toList(),
+                          onChanged: (String? newValue) {
+                            _role.value = newValue;
+                          },
+                        );
                       },
                     ),
+
                     const SizedBox(height: 24),
                     authViewModel.isLoading
                         ? const CircularProgressIndicator()
@@ -114,7 +128,7 @@ class RegisterView extends StatelessWidget {
                               email: _emailController.text.trim(),
                               password: _passwordController.text.trim(),
                               name: _nameController.text.trim(),
-                              role: _role!,
+                              role: _role.value!,
                               age:
                                   int.tryParse(_ageController.text.trim()) ?? 0,
                             );

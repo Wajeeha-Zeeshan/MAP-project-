@@ -13,7 +13,7 @@ class TutorAvailabilityView extends StatefulWidget {
 
 class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
   List<String> _subjects = [];
-  Map<String, List<String>> _availability = {
+  Map<String, List<Map<String, String>>> _availability = {
     'Monday': [],
     'Tuesday': [],
     'Wednesday': [],
@@ -38,23 +38,40 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
               .collection('tutors')
               .doc(widget.userId)
               .get();
+
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         setState(() {
           _subjects = List<String>.from(data['subjects'] ?? []);
+
           final availabilityData =
               data['availability'] as Map<String, dynamic>?;
           if (availabilityData != null) {
-            _availability = availabilityData.map(
-              (key, value) => MapEntry(key, List<String>.from(value)),
-            );
+            _availability = availabilityData.map((key, value) {
+              final slots = value as List;
+              final safeSlots =
+                  slots.map<Map<String, String>>((e) {
+                    if (e is Map) {
+                      final date = e['date']?.toString() ?? '';
+                      final time = e['time']?.toString() ?? '';
+                      return {'date': date, 'time': time};
+                    }
+                    return {'date': '', 'time': ''};
+                  }).toList();
+              return MapEntry(key, safeSlots);
+            });
           }
+
           final feesData = data['fees'] as Map<String, dynamic>?;
           if (feesData != null) {
             _fees = feesData.map(
-              (key, value) => MapEntry(key, value as double),
+              (key, value) => MapEntry(
+                key,
+                value is int ? value.toDouble() : value as double,
+              ),
             );
           }
+
           _isLoading = false;
         });
       } else {
@@ -170,7 +187,7 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
 
   void _editFee(String subject) {
     final feeController = TextEditingController(
-      text: _fees[subject].toString(),
+      text: _fees[subject]?.toString(),
     );
     showDialog(
       context: context,
@@ -179,9 +196,7 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
           title: Text('Edit Fee for $subject'),
           content: TextField(
             controller: feeController,
-            decoration: const InputDecoration(
-              labelText: 'Fee per Hour (e.g., 50.0)',
-            ),
+            decoration: const InputDecoration(labelText: 'Fee per Hour'),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           actions: [
@@ -200,7 +215,7 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
                   Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a valid fee')),
+                    const SnackBar(content: Text('Enter a valid fee')),
                   );
                 }
               },
@@ -212,17 +227,26 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
     );
   }
 
-  void _addAvailability(String day) {
-    final controller = TextEditingController();
+  void _addAvailability(String day) async {
+    final timeController = TextEditingController();
+    DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (selectedDate == null) return;
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text('Add Availability for $day'),
           content: TextField(
-            controller: controller,
+            controller: timeController,
             decoration: const InputDecoration(
-              labelText: 'Time Slot (e.g., 9:00 AM - 10:00 AM)',
+              labelText: 'Time Slot (e.g., 10:00 AM - 11:00 AM)',
             ),
           ),
           actions: [
@@ -232,10 +256,13 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
             ),
             TextButton(
               onPressed: () {
-                final timeSlot = controller.text.trim();
+                final timeSlot = timeController.text.trim();
                 if (timeSlot.isNotEmpty) {
                   setState(() {
-                    _availability[day]!.add(timeSlot);
+                    _availability[day]!.add({
+                      'date': selectedDate.toIso8601String(),
+                      'time': timeSlot,
+                    });
                   });
                   _updateTutorData();
                   Navigator.pop(context);
@@ -270,204 +297,196 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Container(
-        color: Colors.white,
-        child:
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Subjects You Teach',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Subjects You Teach',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8.0,
-                            runSpacing: 8.0,
-                            children:
-                                _subjects.map((subject) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          subject,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'RM${_fees[subject]?.toStringAsFixed(2) ?? '0.00'}/hr',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.black54,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        GestureDetector(
-                                          onTap: () => _editFee(subject),
-                                          child: const Icon(
-                                            Icons.edit,
-                                            size: 18,
-                                            color: Color(0xFF4facfe),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _subjects.remove(subject);
-                                              _fees.remove(subject);
-                                            });
-                                            _updateTutorData();
-                                          },
-                                          child: const Icon(
-                                            Icons.close,
-                                            size: 18,
-                                            color: Colors.redAccent,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                          ),
-                          const SizedBox(height: 10),
-                          ElevatedButton(
-                            onPressed: _addSubject,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4facfe),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('Add Subject'),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Availability',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          ..._availability.keys.map((day) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      day,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.add,
-                                        color: Colors.black,
-                                      ),
-                                      onPressed: () => _addAvailability(day),
-                                    ),
-                                  ],
-                                ),
-                                if (_availability[day]!.isEmpty)
-                                  const Padding(
-                                    padding: EdgeInsets.only(left: 8.0),
-                                    child: Text(
-                                      'No time slots added.',
-                                      style: TextStyle(color: Colors.black54),
-                                    ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8.0,
+                          runSpacing: 8.0,
+                          children:
+                              _subjects.map((subject) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
                                   ),
-                                ..._availability[day]!.map((slot) {
-                                  return Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: ListTile(
-                                      title: Text(
-                                        slot,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        subject,
                                         style: const TextStyle(
-                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      trailing: IconButton(
-                                        icon: const Icon(
-                                          Icons.delete,
-                                          color: Colors.redAccent,
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'RM${_fees[subject]?.toStringAsFixed(2) ?? '0.00'}/hr',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.black54,
                                         ),
-                                        onPressed: () {
+                                      ),
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () => _editFee(subject),
+                                        child: const Icon(
+                                          Icons.edit,
+                                          size: 18,
+                                          color: Color(0xFF4facfe),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      GestureDetector(
+                                        onTap: () {
                                           setState(() {
-                                            _availability[day]!.remove(slot);
+                                            _subjects.remove(subject);
+                                            _fees.remove(subject);
                                           });
                                           _updateTutorData();
                                         },
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 18,
+                                          color: Colors.redAccent,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                }).toList(),
-                                const Divider(color: Colors.black12),
-                              ],
-                            );
-                          }).toList(),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: _viewBookings,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4facfe),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'View Bookings',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: _addSubject,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4facfe),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                        ],
-                      ),
+                          child: const Text('Add Subject'),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Availability',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ..._availability.keys.map((day) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    day,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.add),
+                                    onPressed: () => _addAvailability(day),
+                                  ),
+                                ],
+                              ),
+                              if (_availability[day]!.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 8.0),
+                                  child: Text(
+                                    'No time slots added.',
+                                    style: TextStyle(color: Colors.black54),
+                                  ),
+                                ),
+                              ..._availability[day]!.map((slot) {
+                                final dateStr = slot['date'] ?? '';
+                                final time = slot['time'] ?? '';
+                                String formattedDate = 'Invalid Date';
+                                try {
+                                  final date = DateTime.parse(dateStr);
+                                  formattedDate =
+                                      '${date.day}/${date.month}/${date.year}';
+                                } catch (_) {}
+
+                                return Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: ListTile(
+                                    title: Text('$formattedDate - $time'),
+                                    trailing: IconButton(
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.redAccent,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _availability[day]!.remove(slot);
+                                        });
+                                        _updateTutorData();
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              const Divider(color: Colors.black12),
+                            ],
+                          );
+                        }).toList(),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _viewBookings,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4facfe),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'View Bookings',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-      ),
+              ),
     );
   }
 }

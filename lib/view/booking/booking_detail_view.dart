@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../viewmodels/booking_viewmodel.dart';
+import '../../viewmodels/notification_viewmodel.dart';
 import '../../models/booking_model.dart';
 
 class BookingDetailView extends StatefulWidget {
   final String tutorName;
-  final String tutorId; // Added tutorId
-  final String studentId; // Added studentId
+  final String tutorId;
+  final String studentId;
   final List<String> subjects;
   final Map<String, List<String>> availability;
 
@@ -24,9 +27,33 @@ class BookingDetailView extends StatefulWidget {
 
 class _BookingDetailViewState extends State<BookingDetailView> {
   String? selectedSubject;
-  String? selectedDay;
+  String? selectedDayKey;
   String? selectedSlot;
-  bool _isLoading = false; // Added loading state
+  String? selectedDate;
+  bool _isLoading = false;
+
+  late final Map<String, String> next7DayMap;
+
+  @override
+  void initState() {
+    super.initState();
+    next7DayMap = _generateNext7Days();
+  }
+
+  Map<String, String> _generateNext7Days() {
+    final now = DateTime.now();
+    final dayMap = <String, String>{};
+    for (int i = 0; i < 7; i++) {
+      final date = now.add(Duration(days: i));
+      final dayName = DateFormat('EEEE').format(date);
+      final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+      if (widget.availability.containsKey(dayName) &&
+          widget.availability[dayName]!.isNotEmpty) {
+        dayMap[dayName] = formattedDate;
+      }
+    }
+    return dayMap;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,37 +84,35 @@ class _BookingDetailViewState extends State<BookingDetailView> {
                         ),
                       )
                       .toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedSubject = value;
-                });
-              },
+              onChanged: (value) => setState(() => selectedSubject = value),
             ),
             const SizedBox(height: 20),
             const Text(
-              'Select Day:',
+              'Select Day & Date:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             DropdownButton<String>(
-              value: selectedDay,
+              value: selectedDayKey,
               isExpanded: true,
               hint: const Text('Choose day'),
               items:
-                  widget.availability.keys
-                      .where((day) => widget.availability[day]!.isNotEmpty)
+                  next7DayMap.entries
                       .map(
-                        (day) => DropdownMenuItem(value: day, child: Text(day)),
+                        (entry) => DropdownMenuItem(
+                          value: entry.key,
+                          child: Text('${entry.key} (${entry.value})'),
+                        ),
                       )
                       .toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedDay = value;
-                  selectedSlot = null; // Reset time slot when day changes
-                });
-              },
+              onChanged:
+                  (value) => setState(() {
+                    selectedDayKey = value;
+                    selectedDate = next7DayMap[value!];
+                    selectedSlot = null;
+                  }),
             ),
             const SizedBox(height: 20),
-            if (selectedDay != null)
+            if (selectedDayKey != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -100,7 +125,7 @@ class _BookingDetailViewState extends State<BookingDetailView> {
                     isExpanded: true,
                     hint: const Text('Choose time slot'),
                     items:
-                        widget.availability[selectedDay]!
+                        widget.availability[selectedDayKey]!
                             .map(
                               (slot) => DropdownMenuItem(
                                 value: slot,
@@ -108,16 +133,12 @@ class _BookingDetailViewState extends State<BookingDetailView> {
                               ),
                             )
                             .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedSlot = value;
-                      });
-                    },
+                    onChanged: (value) => setState(() => selectedSlot = value),
                   ),
                 ],
               ),
             if (!(selectedSubject != null &&
-                selectedDay != null &&
+                selectedDayKey != null &&
                 selectedSlot != null))
               const Padding(
                 padding: EdgeInsets.only(top: 10),
@@ -132,12 +153,10 @@ class _BookingDetailViewState extends State<BookingDetailView> {
               child: ElevatedButton(
                 onPressed:
                     (selectedSubject != null &&
-                            selectedDay != null &&
+                            selectedDayKey != null &&
                             selectedSlot != null &&
                             !_isLoading)
-                        ? () {
-                          _navigateToPayment(context);
-                        }
+                        ? _sendBookingRequest
                         : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4facfe),
@@ -150,7 +169,7 @@ class _BookingDetailViewState extends State<BookingDetailView> {
                     _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
-                          'Make Payment',
+                          'Send Request',
                           style: TextStyle(fontSize: 16, color: Colors.white),
                         ),
               ),
@@ -161,94 +180,68 @@ class _BookingDetailViewState extends State<BookingDetailView> {
     );
   }
 
-  void _navigateToPayment(BuildContext context) {
+  Future<void> _sendBookingRequest() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     final bookingViewModel = BookingViewModel();
+    final notificationViewModel = NotificationViewModel();
 
-    showDialog(
-      context: context,
-      barrierDismissible: false, // Prevent dismissing during loading
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Proceed to Payment'),
-            content: const Text('This is where payment flow would happen.'),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  setState(() {
-                    _isLoading = true; // Show loading indicator
-                  });
+    try {
+      final booking = Booking(
+        tutorName: widget.tutorName,
+        tutorId: widget.tutorId,
+        studentId: widget.studentId,
+        subject: selectedSubject!,
+        day: selectedDayKey!,
+        date: selectedDate!,
+        timeSlot: selectedSlot!,
+        createdAt: DateTime.now(),
+        status: 'pending',
+      );
 
-                  try {
-                    // Create a Booking instance with all required fields
-                    final booking = Booking(
-                      tutorName: widget.tutorName,
-                      tutorId: widget.tutorId,
-                      studentId: widget.studentId,
-                      subject: selectedSubject!,
-                      day: selectedDay!,
-                      timeSlot: selectedSlot!,
-                      createdAt: DateTime.now(),
-                    );
+      await bookingViewModel.saveBooking(booking);
 
-                    // Save the booking to Firestore
-                    await bookingViewModel.saveBooking(booking);
+      // 🟢 Send notification to tutor
+      await notificationViewModel.sendNotification(
+        senderId: widget.studentId,
+        receiverId: widget.tutorId,
+        message:
+            'You have received a new booking request for $selectedSubject on $selectedDate at $selectedSlot.',
+        type: 'booking_request',
+      );
 
-                    // Close payment dialog
-                    Navigator.of(context).pop();
-
-                    // Show confirmation
-                    _showBookingConfirmation(context);
-                  } catch (e) {
-                    // Handle errors
-                    setState(() {
-                      _isLoading = false;
-                    });
-                    Navigator.of(context).pop(); // Close payment dialog
-                    showDialog(
-                      context: context,
-                      builder:
-                          (context) => AlertDialog(
-                            title: const Text('Error'),
-                            content: Text('Failed to save booking: $e'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text('OK'),
-                              ),
-                            ],
-                          ),
-                    );
-                  } finally {
-                    setState(() {
-                      _isLoading = false; // Reset loading state
-                    });
-                  }
-                },
-                child: const Text('Pay & Confirm'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-            ],
-          ),
-    );
+      _showRequestSentDialog();
+    } catch (e) {
+      print('Error sending booking request: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error sending request: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
-  void _showBookingConfirmation(BuildContext context) {
+  void _showRequestSentDialog() {
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Booking Confirmed'),
+            title: const Text('Request Sent'),
             content: Text(
-              'You have booked ${widget.tutorName} for $selectedSubject on $selectedDay at $selectedSlot.',
+              'Your booking request for ${widget.tutorName} has been sent and is pending approval.',
             ),
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close confirmation dialog
-                  Navigator.pop(context); // Navigate back to previous screen
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context); // Go back
                 },
                 child: const Text('OK'),
               ),

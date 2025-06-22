@@ -7,7 +7,10 @@ import '../tutor/tutor_list_view.dart';
 import '../tutor/tutor_availability_view.dart';
 import '../booking/students_booking_view.dart';
 import '../tutor/qualifications_view.dart';
+import '../../view/booking/notification_view.dart';
 import '../../viewmodels/tutor_viewmodel.dart';
+import '../tutor/subjects_tutors_view.dart';
+import '../review/review_list_view.dart';
 
 class ProfileView extends StatefulWidget {
   final UserModel user;
@@ -20,11 +23,26 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   late UserModel _currentUser;
+  int _unreadNotifications = 0;
 
   @override
   void initState() {
     super.initState();
     _currentUser = widget.user;
+    _fetchUnreadNotificationCount();
+  }
+
+  Future<void> _fetchUnreadNotificationCount() async {
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('notifications')
+            .where('receiverId', isEqualTo: _currentUser.uid)
+            .where('isRead', isEqualTo: false)
+            .get();
+
+    setState(() {
+      _unreadNotifications = snapshot.docs.length;
+    });
   }
 
   @override
@@ -35,6 +53,46 @@ class _ProfileViewState extends State<ProfileView> {
         title: const Text('Dashboard'),
         backgroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications, color: Colors.black),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (_) => NotificationView(userId: _currentUser.uid),
+                    ),
+                  );
+                  _fetchUnreadNotificationCount(); // Refresh count after return
+                },
+              ),
+              if (_unreadNotifications > 0)
+                Positioned(
+                  right: 11,
+                  top: 11,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      '$_unreadNotifications',
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -45,7 +103,9 @@ class _ProfileViewState extends State<ProfileView> {
               _buildProfileSummary(),
               const SizedBox(height: 20),
               Text(
-                _currentUser.role == 'student' ? 'Courses for You' : 'Manage Your Activities',
+                _currentUser.role == 'student'
+                    ? 'Courses for You'
+                    : 'Manage Your Activities',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -53,63 +113,146 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               const SizedBox(height: 10),
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1,
-                  children: _currentUser.role == 'student'
-                      ? [
-                          _dashboardTile(
-                            icon: Icons.search,
-                            label: 'Browse Tutors',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const TutorListView()),
-                            ),
-                          ),
-                          _dashboardTile(
-                            icon: Icons.book,
-                            label: 'View Bookings',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const StudentBookingListView()),
-                            ),
-                          ),
-                          _courseCard('Frontend Design', '40RM'),
-                          _courseCard('Flutter Basics', '60RM'),
-                        ]
-                      : [
-                          _dashboardTile(
-                            icon: Icons.calendar_today,
-                            label: 'Availability',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => TutorAvailabilityView(userId: _currentUser.uid),
+                child:
+                    _currentUser.role == 'student'
+                        ? SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              GridView.count(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                childAspectRatio: 1,
+                                children: [
+                                  _dashboardTile(
+                                    icon: Icons.search,
+                                    label: 'Browse Tutors',
+                                    onTap:
+                                        () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (_) => const TutorListView(),
+                                          ),
+                                        ),
+                                  ),
+                                  _dashboardTile(
+                                    icon: Icons.book,
+                                    label: 'View Bookings',
+                                    onTap:
+                                        () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (_) =>
+                                                    const StudentBookingListView(),
+                                          ),
+                                        ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ),
-                          _dashboardTile(
-                            icon: Icons.school,
-                            label: 'Qualifications',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ChangeNotifierProvider(
-                                  create: (_) => TutorViewModel(),
-                                  child: QualificationsView(uid: _currentUser.uid),
+                              const SizedBox(height: 30),
+                              const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Subjects',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  _subjectChip(context, 'Maths'),
+                                  _subjectChip(context, 'English'),
+                                  _subjectChip(context, 'Science'),
+                                  _subjectChip(context, 'Computer'),
+                                  _subjectChip(context, 'History'),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
-                ),
-              )
+                        )
+                        : GridView.count(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 1,
+                          children: [
+                            _dashboardTile(
+                              icon: Icons.calendar_today,
+                              label: 'Availability',
+                              onTap:
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => TutorAvailabilityView(
+                                            userId: _currentUser.uid,
+                                          ),
+                                    ),
+                                  ),
+                            ),
+                            _dashboardTile(
+                              icon: Icons.school,
+                              label: 'Qualifications',
+                              onTap:
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => ChangeNotifierProvider(
+                                            create: (_) => TutorViewModel(),
+                                            child: QualificationsView(
+                                              uid: _currentUser.uid,
+                                            ),
+                                          ),
+                                    ),
+                                  ),
+                            ),
+                            _dashboardTile(
+                              icon: Icons.reviews,
+                              label: 'View Reviews',
+                              onTap:
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => ReviewListView(
+                                            tutorId: _currentUser.uid,
+                                            tutorName: _currentUser.name,
+                                          ),
+                                    ),
+                                  ),
+                            ),
+                          ],
+                        ),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _subjectChip(BuildContext context, String subject) {
+    return ActionChip(
+      label: Text(subject),
+      backgroundColor: Colors.lightBlue[100],
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SubjectTutorsView(subject: subject),
+          ),
+        );
+      },
     );
   }
 
@@ -134,7 +277,10 @@ class _ProfileViewState extends State<ProfileView> {
               children: [
                 Text(
                   _currentUser.name,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(_currentUser.email),
                 Text('Role: ${_currentUser.role}'),
@@ -146,7 +292,11 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _dashboardTile({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _dashboardTile({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -169,41 +319,6 @@ class _ProfileViewState extends State<ProfileView> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _courseCard(String title, String price) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFe3f2fd),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text('Price: $price', style: const TextStyle(fontSize: 14)),
-          const Spacer(),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4facfe),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Enroll'),
-            ),
-          )
-        ],
       ),
     );
   }
