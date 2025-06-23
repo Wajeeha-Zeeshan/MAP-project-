@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/booking_model.dart';
 import '../../viewmodels/auth_viewmodel.dart';
@@ -22,6 +23,19 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
     if (_studentId == null) {
       final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
       _studentId = authViewModel.user?.uid;
+    }
+  }
+
+  void launchPaymentURL(String url) async {
+    final Uri paymentUri = Uri.parse(url);
+
+    if (!await launchUrl(paymentUri, mode: LaunchMode.inAppWebView)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open payment page.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -142,7 +156,9 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
                           children: [
                             ElevatedButton.icon(
                               onPressed: () {
-                                // Stripe Payment Logic (Optional)
+                                launchPaymentURL(
+                                  'https://buy.stripe.com/test_aFa5kwgyb1Kea35d7s4Ni00',
+                                );
                               },
                               icon: const Icon(Icons.payment),
                               label: const Text('Pay with Stripe'),
@@ -150,12 +166,13 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
                                 backgroundColor: Colors.deepPurple,
                               ),
                             ),
+
                             ElevatedButton.icon(
                               onPressed: () async {
                                 final viewModel = BookingViewModel();
                                 await viewModel.markBookingAsPaid(docId);
 
-                                // 🔔 Send notification to tutor
+                                // Send notification to tutor
                                 await FirebaseFirestore.instance
                                     .collection('notifications')
                                     .add({
