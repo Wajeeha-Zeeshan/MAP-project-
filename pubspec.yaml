@@ -31,3 +31,5 @@ flutter:
   uses-material-design: true
   assets:
     - lib/images/cover.png
+    - lib/images/student_profile.png
+    - lib/images/teacher_profile.png
