@@ -1,16 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../models/user_model.dart';
-import '../tutor/tutor_list_view.dart';
-import '../tutor/tutor_availability_view.dart';
-import '../booking/students_booking_view.dart';
-import '../tutor/qualifications_view.dart';
+import '../student/student_view.dart'; // Adjusted import for StudentView
+import '../tutor/tutor_view.dart'; // Adjusted import for TutorView
 import '../../view/booking/notification_view.dart';
-import '../../viewmodels/tutor_viewmodel.dart';
-import '../tutor/subjects_tutors_view.dart';
-import '../review/review_list_view.dart';
 
 class ProfileView extends StatefulWidget {
   final UserModel user;
@@ -33,37 +26,135 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Future<void> _fetchUnreadNotificationCount() async {
-    final snapshot =
-        await FirebaseFirestore.instance
-            .collection('notifications')
-            .where('receiverId', isEqualTo: _currentUser.uid)
-            .where('isRead', isEqualTo: false)
-            .get();
+    final snapshot = await FirebaseFirestore.instance
+        .collection('notifications')
+        .where('receiverId', isEqualTo: _currentUser.uid)
+        .where('isRead', isEqualTo: false)
+        .get();
 
     setState(() {
       _unreadNotifications = snapshot.docs.length;
     });
   }
 
+  Future<void> _deleteProfile() async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_currentUser.uid)
+          .delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile deleted successfully')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting profile: $e')),
+      );
+    }
+  }
+
+  void _editProfileDialog() {
+    final nameController = TextEditingController(text: _currentUser.name);
+    final emailController = TextEditingController(text: _currentUser.email);
+    final ageController =
+        TextEditingController(text: _currentUser.age.toString());
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Edit Profile'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: 'Name',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ageController,
+              decoration: InputDecoration(
+                labelText: 'Age',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(_currentUser.uid)
+                  .update({
+                'name': nameController.text.trim(),
+                'email': emailController.text.trim(),
+                'age': int.tryParse(ageController.text.trim()) ??
+                    _currentUser.age,
+              });
+              setState(() {
+                _currentUser = UserModel(
+                  uid: _currentUser.uid,
+                  name: nameController.text.trim(),
+                  email: emailController.text.trim(),
+                  age: int.tryParse(ageController.text.trim()) ??
+                      _currentUser.age,
+                  role: _currentUser.role,
+                  password: _currentUser.password,
+                );
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFf5f9ff),
       appBar: AppBar(
-        title: const Text('Dashboard'),
-        backgroundColor: Colors.white,
+        title: const Text(
+          'Dashboard',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF1976D2),
         elevation: 0,
         actions: [
           Stack(
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications, color: Colors.black),
+                icon: const Icon(Icons.notifications, color: Colors.white),
                 onPressed: () async {
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (_) => NotificationView(userId: _currentUser.uid),
+                      builder: (_) =>
+                          NotificationView(userId: _currentUser.uid),
                     ),
                   );
                   _fetchUnreadNotificationCount();
@@ -71,18 +162,16 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               if (_unreadNotifications > 0)
                 Positioned(
-                  right: 11,
-                  top: 11,
+                  right: 8,
+                  top: 8,
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: Colors.red,
+                      color: Colors.redAccent,
                       shape: BoxShape.circle,
                     ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
+                    constraints:
+                        const BoxConstraints(minWidth: 18, minHeight: 18),
                     child: Text(
                       '$_unreadNotifications',
                       style: const TextStyle(color: Colors.white, fontSize: 10),
@@ -96,143 +185,48 @@ class _ProfileViewState extends State<ProfileView> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildProfileSummary(),
               const SizedBox(height: 20),
-              Text(
-                _currentUser.role == 'student'
-                    ? 'Courses for You'
-                    : 'Manage Your Activities',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _editProfileDialog,
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('Edit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1976D2),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      elevation: 3,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _deleteProfile,
+                    icon: const Icon(Icons.delete, size: 18),
+                    label: const Text('Delete'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF5350),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      elevation: 3,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 30),
               Expanded(
-                child:
-                    _currentUser.role == 'student'
-                        ? SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              GridView.count(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                childAspectRatio: 1,
-                                children: [
-                                  _dashboardTile(
-                                    icon: Icons.search,
-                                    label: 'Browse Tutors',
-                                    onTap:
-                                        () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder:
-                                                (_) => const TutorListView(),
-                                          ),
-                                        ),
-                                  ),
-                                  _dashboardTile(
-                                    icon: Icons.book,
-                                    label: 'View Bookings',
-                                    onTap:
-                                        () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder:
-                                                (_) =>
-                                                    const StudentBookingListView(),
-                                          ),
-                                        ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 30),
-                              const Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'Subjects',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 12,
-                                children: [
-                                  _subjectChip(context, 'Maths'),
-                                  _subjectChip(context, 'English'),
-                                  _subjectChip(context, 'Science'),
-                                  _subjectChip(context, 'Computer'),
-                                  _subjectChip(context, 'History'),
-                                ],
-                              ),
-                            ],
-                          ),
-                        )
-                        : GridView.count(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 1,
-                          children: [
-                            _dashboardTile(
-                              icon: Icons.calendar_today,
-                              label: 'Availability',
-                              onTap:
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) => TutorAvailabilityView(
-                                            userId: _currentUser.uid,
-                                          ),
-                                    ),
-                                  ),
-                            ),
-                            _dashboardTile(
-                              icon: Icons.school,
-                              label: 'Qualifications',
-                              onTap:
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) => ChangeNotifierProvider(
-                                            create: (_) => TutorViewModel(),
-                                            child: QualificationsView(
-                                              uid: _currentUser.uid,
-                                            ),
-                                          ),
-                                    ),
-                                  ),
-                            ),
-                            _dashboardTile(
-                              icon: Icons.reviews,
-                              label: 'View Reviews',
-                              onTap:
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) => ReviewListView(
-                                            tutorId: _currentUser.uid,
-                                            tutorName: _currentUser.name,
-                                          ),
-                                    ),
-                                  ),
-                            ),
-                          ],
-                        ),
+                child: _navigateToRoleBasedView(),
               ),
             ],
           ),
@@ -241,41 +235,43 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _subjectChip(BuildContext context, String subject) {
-    return ActionChip(
-      label: Text(subject),
-      backgroundColor: Colors.lightBlue[100],
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SubjectTutorsView(subject: subject),
-          ),
-        );
-      },
-    );
+  Widget _navigateToRoleBasedView() {
+    return _currentUser.role == 'student'
+        ? StudentView(user: _currentUser)
+        : TutorView(user: _currentUser);
   }
 
   Widget _buildProfileSummary() {
-    String imagePath =
-        _currentUser.role == 'student'
-            ? 'lib/images/student_profile.png'
-            : 'lib/images/teacher_profile.png';
-
+    String imagePath = _currentUser.role == 'student'
+        ? 'lib/images/student_profile.png'
+        : 'lib/images/teacher_profile.png';
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFe3f2fd),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        gradient: LinearGradient(
+          colors: [Colors.white, const Color(0xFFE3F2FD)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            radius: 30,
+            radius: 40,
             backgroundImage: AssetImage(imagePath),
             backgroundColor: Colors.transparent,
+            foregroundColor: const Color(0xFF1976D2),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,47 +279,31 @@ class _ProfileViewState extends State<ProfileView> {
                 Text(
                   _currentUser.name,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: Color(0xFF333333),
                   ),
                 ),
-                Text(_currentUser.email),
-                Text('Role: ${_currentUser.role}'),
+                const SizedBox(height: 4),
+                Text(
+                  _currentUser.email,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF757575),
+                  ),
+                ),
+                Text(
+                  'Role: ${_currentUser.role}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF757575),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _dashboardTile({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF4facfe),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 36, color: Colors.white),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
