@@ -39,6 +39,21 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
     }
   }
 
+  void launchWhatsAppGroup() async {
+    final Uri whatsappUri = Uri.parse(
+      'https://chat.whatsapp.com/YourGroupInviteLink',
+    );
+
+    if (!await launchUrl(whatsappUri, mode: LaunchMode.externalApplication)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open WhatsApp.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_studentId == null) {
@@ -166,13 +181,11 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
                                 backgroundColor: Colors.deepPurple,
                               ),
                             ),
-
                             ElevatedButton.icon(
                               onPressed: () async {
                                 final viewModel = BookingViewModel();
                                 await viewModel.markBookingAsPaid(docId);
 
-                                // Send notification to tutor
                                 await FirebaseFirestore.instance
                                     .collection('notifications')
                                     .add({
@@ -193,6 +206,9 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
                                 );
 
                                 setState(() {});
+
+                                // Show WhatsApp popup
+                                _showWhatsAppPopup();
                               },
                               icon: const Icon(Icons.check),
                               label: const Text('Mark as Paid'),
@@ -239,6 +255,34 @@ class _StudentBookingListViewState extends State<StudentBookingListView> {
           );
         },
       ),
+    );
+  }
+
+  void _showWhatsAppPopup() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Join WhatsApp Group'),
+            content: const Text(
+              'Thank you for your payment! You can now join our WhatsApp group for updates.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  launchWhatsAppGroup();
+                },
+                icon: const Icon(Icons.chat),
+                label: const Text('Join WhatsApp'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              ),
+            ],
+          ),
     );
   }
 

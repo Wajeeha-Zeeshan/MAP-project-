@@ -66,7 +66,7 @@ class _ProfileViewState extends State<ProfileView> {
                           (_) => NotificationView(userId: _currentUser.uid),
                     ),
                   );
-                  _fetchUnreadNotificationCount(); // Refresh count after return
+                  _fetchUnreadNotificationCount();
                 },
               ),
               if (_unreadNotifications > 0)
@@ -257,6 +257,11 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _buildProfileSummary() {
+    String imagePath =
+        _currentUser.role == 'student'
+            ? 'lib/images/student_profile.png'
+            : 'lib/images/teacher_profile.png';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -265,10 +270,10 @@ class _ProfileViewState extends State<ProfileView> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 30,
-            backgroundColor: Color(0xFF4facfe),
-            child: Icon(Icons.person, color: Colors.white, size: 30),
+            backgroundImage: AssetImage(imagePath),
+            backgroundColor: Colors.transparent,
           ),
           const SizedBox(width: 16),
           Expanded(
