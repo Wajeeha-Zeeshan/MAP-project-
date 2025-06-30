@@ -288,205 +288,239 @@ class _TutorAvailabilityViewState extends State<TutorAvailabilityView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Added white background here
       appBar: AppBar(
-        backgroundColor: const Color(0xFF4facfe),
+        backgroundColor: Colors.blue[900],
         elevation: 0,
-        title: const Text('Manage Availability'),
+        title: const Text('Manage Availability', style: TextStyle(color: Colors.white)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Subjects You Teach',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Subjects You Teach',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      Wrap(
+                        spacing: 10.0,
+                        runSpacing: 10.0,
+                        children: _subjects.map((subject) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(25),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue[100]!.withOpacity(0.3),
+                                  spreadRadius: 1,
+                                  blurRadius: 3,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  subject,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'RM${_fees[subject]?.toStringAsFixed(2) ?? '0.00'}/hr',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blueGrey,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                GestureDetector(
+                                  onTap: () => _editFee(subject),
+                                  child: const Icon(
+                                    Icons.edit,
+                                    size: 18,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _subjects.remove(subject);
+                                      _fees.remove(subject);
+                                    });
+                                    _updateTutorData();
+                                  },
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 18,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 15),
+                      ElevatedButton(
+                        onPressed: _addSubject,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8.0,
-                          runSpacing: 8.0,
-                          children:
-                              _subjects.map((subject) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
+                        child: const Text('Add Subject', style: TextStyle(fontSize: 16)),
+                      ),
+                      const SizedBox(height: 25),
+                      const Text(
+                        'Availability',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      ..._availability.keys.map((day) {
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.only(bottom: 15),
+                          color: Colors.blue[50],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      day,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.add, color: Colors.blue),
+                                      onPressed: () => _addAvailability(day),
+                                    ),
+                                  ],
+                                ),
+                                if (_availability[day]!.isEmpty)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 8.0),
+                                    child: Text(
+                                      'No time slots added.',
+                                      style: TextStyle(color: Colors.blueGrey),
+                                    ),
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        subject,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
+                                ..._availability[day]!.map((slot) {
+                                  final dateStr = slot['date'] ?? '';
+                                  final time = slot['time'] ?? '';
+                                  String formattedDate = 'Invalid Date';
+                                  try {
+                                    final date = DateTime.parse(dateStr);
+                                    formattedDate =
+                                        '${date.day}/${date.month}/${date.year}';
+                                  } catch (_) {}
+
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.grey.withOpacity(0.1),
+                                          spreadRadius: 1,
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
                                         ),
+                                      ],
+                                    ),
+                                    child: ListTile(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
                                       ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'RM${_fees[subject]?.toStringAsFixed(2) ?? '0.00'}/hr',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.black54,
+                                      title: Text(
+                                        '$formattedDate - $time',
+                                        style: const TextStyle(color: Colors.blueGrey),
+                                      ),
+                                      trailing: IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.redAccent,
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      GestureDetector(
-                                        onTap: () => _editFee(subject),
-                                        child: const Icon(
-                                          Icons.edit,
-                                          size: 18,
-                                          color: Color(0xFF4facfe),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      GestureDetector(
-                                        onTap: () {
+                                        onPressed: () {
                                           setState(() {
-                                            _subjects.remove(subject);
-                                            _fees.remove(subject);
+                                            _availability[day]!.remove(slot);
                                           });
                                           _updateTutorData();
                                         },
-                                        child: const Icon(
-                                          Icons.close,
-                                          size: 18,
-                                          color: Colors.redAccent,
-                                        ),
                                       ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                        ),
-                        const SizedBox(height: 10),
-                        ElevatedButton(
-                          onPressed: _addSubject,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4facfe),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text('Add Subject'),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Availability',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ..._availability.keys.map((day) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    day,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
                                     ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.add),
-                                    onPressed: () => _addAvailability(day),
-                                  ),
-                                ],
-                              ),
-                              if (_availability[day]!.isEmpty)
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 8.0),
-                                  child: Text(
-                                    'No time slots added.',
-                                    style: TextStyle(color: Colors.black54),
-                                  ),
-                                ),
-                              ..._availability[day]!.map((slot) {
-                                final dateStr = slot['date'] ?? '';
-                                final time = slot['time'] ?? '';
-                                String formattedDate = 'Invalid Date';
-                                try {
-                                  final date = DateTime.parse(dateStr);
-                                  formattedDate =
-                                      '${date.day}/${date.month}/${date.year}';
-                                } catch (_) {}
-
-                                return Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: ListTile(
-                                    title: Text('$formattedDate - $time'),
-                                    trailing: IconButton(
-                                      icon: const Icon(
-                                        Icons.delete,
-                                        color: Colors.redAccent,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _availability[day]!.remove(slot);
-                                        });
-                                        _updateTutorData();
-                                      },
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                              const Divider(color: Colors.black12),
-                            ],
-                          );
-                        }).toList(),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: _viewBookings,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4facfe),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 14,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                                  );
+                                }).toList(),
+                              ],
                             ),
                           ),
-                          child: const Text(
-                            'View Bookings',
-                            style: TextStyle(fontSize: 16, color: Colors.white),
+                        );
+                      }).toList(),
+                      const SizedBox(height: 25),
+                      ElevatedButton(
+                        onPressed: _viewBookings,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[600],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                      ],
-                    ),
+                        child: const Text(
+                          'View Bookings',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+            ),
     );
   }
 }
