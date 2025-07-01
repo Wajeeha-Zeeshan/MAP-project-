@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../viewmodels/auth_viewmodel.dart';
@@ -51,48 +52,79 @@ class TutorDetailView extends StatelessWidget {
         _convertToDateBasedAvailability(dayBasedAvailability);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF4facfe),
-        elevation: 0,
-        title: Text(tutor['name'] as String? ?? 'Tutor Details'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: Container(
-        color: Colors.white,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFe3f2fd),
+              Color(0xFFcce7ff),
+            ], // Softer blue gradient
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0), // Reduced from 20.0
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  AppBar(
+                    backgroundColor: Colors.transparent,
+                    title: Text(
+                      tutor['name'] as String? ?? 'Tutor Details',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18, // Slightly reduced
+                        fontWeight: FontWeight.w600,
+                        color: const Color.fromARGB(255, 7, 0, 0),
+                      ),
+                    ),
+                    leading: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: Color.fromARGB(255, 0, 0, 0),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    flexibleSpace: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFF4facfe),
+                            Color(0xFF00d4ff),
+                          ], // Vibrant gradient
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12), // Reduced from 20
                   Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: 4,
+                    color: Colors.white.withOpacity(0.9), // Slight transparency
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(12.0), // Reduced from 20.0
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Tutor Details',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4facfe),
+                            style: GoogleFonts.poppins(
+                              fontSize: 20, // Slightly increased for visibility
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF2196f3), // Brighter blue
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10), // Reduced from 16
                           _buildDetailRow(
                             'Name',
                             tutor['name'] as String? ?? 'N/A',
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 8), // Reduced from 12
                           _buildDetailRow(
                             'Email',
                             tutor['email'] as String? ?? 'N/A',
@@ -108,27 +140,30 @@ class TutorDetailView extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  const Text(
+                  const SizedBox(height: 16), // Reduced from 24
+                  Text(
                     'Availability',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18, // Slightly reduced
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87, // High contrast
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8), // Reduced from 12
                   ...dateBasedAvailability.keys.map((date) {
                     final timeSlots = dateBasedAvailability[date]!;
                     return Card(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      color: Colors.grey[100],
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      color: const Color(0xFFf0f4f8), // Lighter background
+                      margin: const EdgeInsets.symmetric(
+                        vertical: 6,
+                      ), // Reduced from 8
                       child: Padding(
-                        padding: const EdgeInsets.all(12.0),
+                        padding: const EdgeInsets.all(
+                          12.0,
+                        ), // Reduced from 16.0
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -136,17 +171,20 @@ class TutorDetailView extends StatelessWidget {
                               DateFormat(
                                 'yyyy-MM-dd (EEEE)',
                               ).format(DateTime.parse(date)),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14, // Reduced for compactness
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6), // Reduced from 10
                             timeSlots.isEmpty
-                                ? const Text(
+                                ? Text(
                                   'No time slots available.',
-                                  style: TextStyle(color: Colors.grey),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12, // Reduced
+                                    color: Colors.grey,
+                                  ),
                                 )
                                 : Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,9 +197,9 @@ class TutorDetailView extends StatelessWidget {
                                           ),
                                           child: Text(
                                             '• $time',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.black,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12, // Reduced
+                                              color: Colors.black87,
                                             ),
                                           ),
                                         );
@@ -172,120 +210,187 @@ class TutorDetailView extends StatelessWidget {
                       ),
                     );
                   }).toList(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16), // Reduced from 24
                   Center(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            if (currentStudentId == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Please log in to book a tutor.',
+                        AnimatedScale(
+                          scale: 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (currentStudentId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Please log in to book a tutor.',
+                                    ),
+                                    backgroundColor: Colors.red,
                                   ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
-
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => BookingDetailView(
-                                      tutorName:
-                                          tutor['name'] as String? ?? 'N/A',
-                                      tutorId: tutorId,
-                                      studentId: currentStudentId,
-                                      subjects: subjects,
-                                      availability: dayBasedAvailability.map(
-                                        (day, slots) => MapEntry(
-                                          day,
-                                          slots
-                                              .map(
-                                                (slotMap) =>
-                                                    slotMap['time'] ?? '',
-                                              )
-                                              .toList(),
+                                );
+                                return;
+                              }
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => BookingDetailView(
+                                        tutorName:
+                                            tutor['name'] as String? ?? 'N/A',
+                                        tutorId: tutorId,
+                                        studentId: currentStudentId,
+                                        subjects: subjects,
+                                        availability: dayBasedAvailability.map(
+                                          (day, slots) => MapEntry(
+                                            day,
+                                            slots
+                                                .map(
+                                                  (slotMap) =>
+                                                      slotMap['time'] ?? '',
+                                                )
+                                                .toList(),
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4facfe),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 4,
+                              shadowColor: const Color(
+                                0xFF42a5f5,
+                              ).withOpacity(0.4),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                          child: const Text(
-                            'Book Tutor',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF42a5f5),
+                                    Color(0xFF00bcd4),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Book Tutor',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (currentStudentId == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Please log in to review a tutor.',
+                        const SizedBox(width: 12),
+                        AnimatedScale(
+                          scale: 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (currentStudentId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Please log in to review a tutor.',
+                                    ),
+                                    backgroundColor: Colors.red,
                                   ),
-                                  backgroundColor: Colors.red,
+                                );
+                                return;
+                              }
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => ReviewFormView(
+                                        tutorId: tutorId,
+                                        studentId: currentStudentId,
+                                        tutorName:
+                                            tutor['name'] as String? ?? 'N/A',
+                                      ),
                                 ),
                               );
-                              return;
-                            }
-
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => ReviewFormView(
-                                      tutorId: tutorId,
-                                      studentId: currentStudentId,
-                                      tutorName:
-                                          tutor['name'] as String? ?? 'N/A',
-                                    ),
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4facfe),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 4,
+                              shadowColor: const Color(
+                                0xFF42a5f5,
+                              ).withOpacity(0.4),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                          child: const Text(
-                            'Review Tutor',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF42a5f5),
+                                    Color(0xFF00bcd4),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Review Tutor',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 30),
+
+                  const SizedBox(height: 20), // Reduced from 30
                 ],
               ),
             ),
@@ -330,8 +435,8 @@ class TutorDetailView extends StatelessWidget {
       children: [
         Text(
           '$label: ',
-          style: const TextStyle(
-            fontSize: 14,
+          style: GoogleFonts.poppins(
+            fontSize: 13, // Slightly reduced
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
@@ -339,7 +444,7 @@ class TutorDetailView extends StatelessWidget {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 14, color: Colors.black),
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black),
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
@@ -355,19 +460,19 @@ class TutorDetailView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Subjects: ',
-          style: TextStyle(
-            fontSize: 14,
+          style: GoogleFonts.poppins(
+            fontSize: 13, // Slightly reduced
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
         ),
         const SizedBox(height: 4),
         subjects.isEmpty
-            ? const Text(
+            ? Text(
               'None',
-              style: TextStyle(fontSize: 14, color: Colors.black),
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.black),
             )
             : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,9 +483,9 @@ class TutorDetailView extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Text(
                         '• $subject (RM${fee.toStringAsFixed(2)}/hr)',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13, // Reduced
+                          color: Colors.black87,
                         ),
                       ),
                     );

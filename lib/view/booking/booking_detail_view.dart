@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui';
 import '../../viewmodels/booking_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
 import '../../models/booking_model.dart';
@@ -59,270 +59,123 @@ class _BookingDetailViewState extends State<BookingDetailView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F9FF),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1976D2),
-        elevation: 0,
-        title: Text(
-          'Book ${widget.tutorName}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFf0f7ff), Color(0xFFe6f0fa)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: SingleChildScrollView(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with Animation
-                AnimatedOpacity(
-                  opacity: 1.0,
-                  duration: const Duration(milliseconds: 500),
-                  child: Text(
-                    'Schedule a Session',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
-                      shadows: [
-                        Shadow(
-                          color: Colors.blue.shade200,
-                          blurRadius: 3,
-                          offset: const Offset(1, 1),
+                _buildSectionTitle('Select Subject'),
+                _buildDropdown(
+                  items: widget.subjects
+                      .map(
+                        (subject) => DropdownMenuItem(
+                          value: subject,
+                          child: Text(subject),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Select the subject, day, and time for your tutoring session.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                  ),
+                      )
+                      .toList(),
+                  value: selectedSubject,
+                  hint: 'Choose subject',
+                  onChanged: (value) => setState(() => selectedSubject = value),
                 ),
                 const SizedBox(height: 24),
-
-                // Subject Selection with Glass Effect
-                _buildGlassCard(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Select Subject:',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1976D2),
-                          ),
+                _buildSectionTitle('Select Day & Date'),
+                _buildDropdown(
+                  items: next7DayMap.entries
+                      .map(
+                        (entry) => DropdownMenuItem(
+                          value: entry.key,
+                          child: Text('${entry.key} (${entry.value})'),
                         ),
-                        const SizedBox(height: 8),
-                        DropdownButton<String>(
-                          value: selectedSubject,
-                          isExpanded: true,
-                          hint: Text(
-                            'Choose subject',
-                            style: TextStyle(
-                              color: Colors.blue.shade400,
-                            ),
-                          ),
-                          items: widget.subjects
-                              .map(
-                                (subject) => DropdownMenuItem(
-                                  value: subject,
-                                  child: Text(
-                                    subject,
-                                    style: TextStyle(
-                                      color: Colors.blue.shade800,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) => setState(() => selectedSubject = value),
-                          underline: const SizedBox(),
-                          icon: Icon(
-                            Icons.arrow_drop_down,
-                            color: Colors.blue.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      )
+                      .toList(),
+                  value: selectedDayKey,
+                  hint: 'Choose day',
+                  onChanged: (value) => setState(() {
+                    selectedDayKey = value;
+                    selectedDate = next7DayMap[value!];
+                    selectedSlot = null;
+                  }),
                 ),
-                const SizedBox(height: 20),
-
-                // Day & Date Selection with Glass Effect
-                _buildGlassCard(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Select Day & Date:',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1976D2),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButton<String>(
-                          value: selectedDayKey,
-                          isExpanded: true,
-                          hint: Text(
-                            'Choose day',
-                            style: TextStyle(
-                              color: Colors.blue.shade400,
-                            ),
-                          ),
-                          items: next7DayMap.entries
-                              .map(
-                                (entry) => DropdownMenuItem(
-                                  value: entry.key,
-                                  child: Text(
-                                    '${entry.key} (${entry.value})',
-                                    style: TextStyle(
-                                      color: Colors.blue.shade800,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) => setState(() {
-                            selectedDayKey = value;
-                            selectedDate = next7DayMap[value!];
-                            selectedSlot = null;
-                          }),
-                          underline: const SizedBox(),
-                          icon: Icon(
-                            Icons.arrow_drop_down,
-                            color: Colors.blue.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Time Slot Selection with Glass Effect (Conditional)
+                const SizedBox(height: 24),
                 if (selectedDayKey != null)
-                  _buildGlassCard(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Select Time Slot:',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1976D2),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          DropdownButton<String>(
-                            value: selectedSlot,
-                            isExpanded: true,
-                            hint: Text(
-                              'Choose time slot',
-                              style: TextStyle(
-                                color: Colors.blue.shade400,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle('Select Time Slot'),
+                      _buildDropdown(
+                        items: widget.availability[selectedDayKey]!
+                            .map(
+                              (slot) => DropdownMenuItem(
+                                value: slot,
+                                child: Text(slot),
                               ),
-                            ),
-                            items: widget.availability[selectedDayKey]!
-                                .map(
-                                  (slot) => DropdownMenuItem(
-                                    value: slot,
-                                    child: Text(
-                                      slot,
-                                      style: TextStyle(
-                                        color: Colors.blue.shade800,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) => setState(() => selectedSlot = value),
-                            underline: const SizedBox(),
-                            icon: Icon(
-                              Icons.arrow_drop_down,
-                              color: Colors.blue.shade600,
-                            ),
-                          ),
-                        ],
+                            )
+                            .toList(),
+                        value: selectedSlot,
+                        hint: 'Choose time slot',
+                        onChanged: (value) => setState(() => selectedSlot = value),
                       ),
-                    ),
+                    ],
                   ),
-
-                // Validation Message
                 if (!(selectedSubject != null &&
                     selectedDayKey != null &&
                     selectedSlot != null))
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 12),
                     child: Text(
                       'Please select all fields to proceed.',
-                      style: TextStyle(
-                        color: Colors.redAccent.shade200,
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      style: TextStyle(color: Colors.red, fontSize: 14),
                     ),
                   ),
-                const SizedBox(height: 24),
-
-                // Send Request Button with Modern Styling
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: (selectedSubject != null &&
-                            selectedDayKey != null &&
-                            selectedSlot != null &&
-                            !_isLoading)
-                        ? _sendBookingRequest
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1976D2),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 30,
-                        vertical: 16,
-                      ),
-                      elevation: 5,
-                      shadowColor: Colors.blue.shade200,
-                      disabledBackgroundColor: Colors.grey.shade400,
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Send Request',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                const Spacer(),
+                AnimatedScale(
+                  scale: _isLoading ? 0.95 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: AnimatedOpacity(
+                    opacity: _isLoading ? 0.7 : 1.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: (selectedSubject != null &&
+                                selectedDayKey != null &&
+                                selectedSlot != null &&
+                                !_isLoading)
+                            ? _sendBookingRequest
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4facfe),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
                           ),
+                          elevation: 8,
+                          shadowColor: const Color(0xFF4facfe).withOpacity(0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                                'Send Request',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -333,7 +186,79 @@ class _BookingDetailViewState extends State<BookingDetailView> {
     );
   }
 
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey[900],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required List<DropdownMenuItem<String>> items,
+    required String? value,
+    required String hint,
+    required ValueChanged<String?>? onChanged,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Colors.white, Color(0xFFF6FAFF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: DropdownButton<String>(
+        value: value,
+        isExpanded: true,
+        hint: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            hint,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+        ),
+        items: items,
+        onChanged: onChanged,
+        dropdownColor: Colors.white,
+        elevation: 4,
+        style: GoogleFonts.poppins(
+          fontSize: 16,
+          color: Colors.grey[900],
+        ),
+        icon: const Icon(
+          Icons.arrow_drop_down,
+          color: Color(0xFF4facfe),
+          size: 30,
+        ),
+        underline: const SizedBox(),
+        borderRadius: BorderRadius.circular(12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      ),
+    );
+  }
+
   Future<void> _sendBookingRequest() async {
+    if (!mounted) return; // Prevent state changes if widget is disposed
     setState(() {
       _isLoading = true;
     });
@@ -356,7 +281,7 @@ class _BookingDetailViewState extends State<BookingDetailView> {
 
       await bookingViewModel.saveBooking(booking);
 
-      // Send notification to tutor
+      // 🟢 Send notification to tutor
       await notificationViewModel.sendNotification(
         senderId: widget.studentId,
         receiverId: widget.tutorId,
@@ -365,16 +290,19 @@ class _BookingDetailViewState extends State<BookingDetailView> {
         type: 'booking_request',
       );
 
+      if (!mounted) return; // Prevent state changes if widget is disposed
       _showRequestSentDialog();
     } catch (e) {
+      if (!mounted) return; // Prevent state changes if widget is disposed
       print('Error sending booking request: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error sending request: $e'),
-          backgroundColor: Colors.redAccent.shade200,
+          backgroundColor: Colors.red,
         ),
       );
     } finally {
+      if (!mounted) return; // Prevent state changes if widget is disposed
       setState(() {
         _isLoading = false;
       });
@@ -382,23 +310,13 @@ class _BookingDetailViewState extends State<BookingDetailView> {
   }
 
   void _showRequestSentDialog() {
+    if (!mounted) return; // Prevent dialog if widget is disposed
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Colors.white.withOpacity(0.95),
-        title: const Text(
-          'Request Sent',
-          style: TextStyle(
-            color: Color(0xFF1976D2),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Request Sent'),
         content: Text(
           'Your booking request for ${widget.tutorName} has been sent and is pending approval.',
-          style: TextStyle(
-            color: Colors.grey.shade800,
-          ),
         ),
         actions: [
           TextButton(
@@ -406,43 +324,9 @@ class _BookingDetailViewState extends State<BookingDetailView> {
               Navigator.pop(context); // Close dialog
               Navigator.pop(context); // Go back
             },
-            child: const Text(
-              'OK',
-              style: TextStyle(
-                color: Color(0xFF1976D2),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: const Text('OK'),
           ),
         ],
-      ),
-    );
-  }
-
-  // Glass Effect Card Widget
-  Widget _buildGlassCard({required Widget child}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.shade100.withOpacity(0.2),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: child,
-        ),
       ),
     );
   }
